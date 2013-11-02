@@ -14,7 +14,7 @@ import lejos.nxt.SensorPort;
 //could delegate to multiple controller classes instead...
 
 public class RobotController {
-	private static double WHEEL_RADIUS = 2.1, ODO_CORRECT_SENS_DIST;
+	private static double WHEEL_RADIUS = 2.1, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
 	private static NXTRegulatedMotor leftMotor;
 	private static NXTRegulatedMotor rightMotor;
@@ -52,7 +52,7 @@ public class RobotController {
 		us = new USGather(usFront, usBack, _frontSenMotor, _backSenMotor);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
 		
-		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODO_CORRECT_SENS_DIST);
+		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
 		odo = new Odometer(leftMotor, rightMotor, corrector);
 		
 		lcd = new LCDInfo(odo);

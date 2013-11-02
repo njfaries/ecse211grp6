@@ -22,9 +22,6 @@ public class Odometer implements TimerListener {
 	//initializing displacement value
 	private double changeInDisplacement = 0.0; ////// or set to read tacho value?????
 	private double changeInTheta = 90.0 * (Math.PI / 180);
-
-	//Current forward speed of the robot
-	private double speed;
 	
 	// lock object for mutual exclusion
 	private static Object lock;
@@ -72,10 +69,7 @@ public class Odometer implements TimerListener {
 			double lSpeed = leftMotor.getRotationSpeed();
 			double rSpeed = rightMotor.getRotationSpeed();
 			if(lSpeed == rSpeed)
-				corrector.update(lSpeed, theta, x, y);
-			
-			if(corrector.isUpdateAvailable())
-				theta = corrector.getNewTheta();
+				corrector.update(Math.abs(lSpeed), theta, x, y);
 		}
 	}
 	
