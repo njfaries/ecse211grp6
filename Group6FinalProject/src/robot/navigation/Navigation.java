@@ -18,9 +18,9 @@ public class Navigation implements TimerListener {
 	private final double MAX_TURN_TO_ERROR = 1.0;
 	
 	public Navigation(Odometer odometer, NXTRegulatedMotor leftMotor, NXTRegulatedMotor rightMotor) {
-			this.leftMotor = leftMotor;
-			this.rightMotor = rightMotor;
-			this.odometer = odometer;
+		this.leftMotor = leftMotor;
+		this.rightMotor = rightMotor;
+		this.odometer = odometer;
 	}
 	
 	public void timedOut() {

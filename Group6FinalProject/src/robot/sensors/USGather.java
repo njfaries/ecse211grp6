@@ -11,14 +11,12 @@ public class USGather implements TimerListener {
 	
 	private UltrasonicSensor usFront;
 	private UltrasonicSensor usBack;
-	private Odometer odo;
 	private SensorMotor frontSenMotor;
 	private SensorMotor backSenMotor;
 	
-	public USGather(Odometer odo, UltrasonicSensor usFront, UltrasonicSensor usBack, SensorMotor frontSenMotor, SensorMotor backSenMotor) {
+	public USGather(UltrasonicSensor usFront, UltrasonicSensor usBack, SensorMotor frontSenMotor, SensorMotor backSenMotor) {
 		this.usFront = usFront;
 		this.usBack = usBack;
-		this.odo = odo;
 		this.frontSenMotor = frontSenMotor;
 		this.backSenMotor = backSenMotor;
 	}

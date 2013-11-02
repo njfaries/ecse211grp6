@@ -1,3 +1,5 @@
+package robot.navigation;
+
 import java.lang.Math.*;
 public class Coordinates {
 	

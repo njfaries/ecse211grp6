@@ -1,7 +1,14 @@
 package robot.navigation;
 import lejos.nxt.Motor;
+import lejos.nxt.NXTRegulatedMotor;
+import lejos.util.Timer;
+import lejos.util.TimerListener;
 
-public class Odometer extends Thread {
+public class Odometer implements TimerListener {
+	private NXTRegulatedMotor leftMotor;
+	private NXTRegulatedMotor rightMotor;
+	private OdometryCorrection corrector;
+	
 	// robot position
 	private static double x, y, theta;
 	//wheel radius in cm
@@ -16,63 +23,59 @@ public class Odometer extends Thread {
 	private double changeInDisplacement = 0.0; ////// or set to read tacho value?????
 	private double changeInTheta = 90.0 * (Math.PI / 180);
 
-	// odometer update period, in ms
-	private static final long ODOMETER_PERIOD = 25;
-
+	//Current forward speed of the robot
+	private double speed;
+	
 	// lock object for mutual exclusion
 	private static Object lock;
 
 	// default constructor
-	public Odometer() {
+	public Odometer(NXTRegulatedMotor leftMotor, NXTRegulatedMotor rightMotor, OdometryCorrection corrector) {
 		x = 0.0;
 		y = 0.0;
 		
 		theta = Math.PI / 180;
 		lock = new Object();
+		
+		this.leftMotor = leftMotor;
+		this.rightMotor = rightMotor;
+		this.corrector = corrector;
+		
+		Timer timer = new Timer(25, this);
+		timer.start();
 	}
 
 	// run method (required for Thread)
-	public void run() {
-		long updateStart, updateEnd;
-
-		while (true) {
-			updateStart = System.currentTimeMillis();
-			// put (some of) your odometer code here
+	public void timedOut() {
+		// put (some of) your odometer code here
+		
+		//update tachos
+		updateTacho();
+		
+		synchronized (lock) {			
+			//changing theta back to radians for calculation
+			theta = Math.toRadians(theta);
 			
-			//update tachos
-			updateTacho();
+			//calculate the change in theta
+			calculateChangeInTheta();
 			
-			synchronized (lock) {
-				// don't use the variables x, y, or theta anywhere but here!
-				
-				//chaning theta back to radians for calculation
-				theta = Math.toRadians(theta);
-				
-				//calculate the change in theta
-				calculateChangeInTheta();
-				
-				//finding new x and y coordinates
-				calculateChangeInDisplacement();
-				x = x + changeInDisplacement * Math.cos(theta + changeInTheta/2);
-				y = y + changeInDisplacement * Math.sin(theta + changeInTheta/2);
-				
-				//calculating the new theta
-				theta = theta - changeInTheta;
-				//changing to degrees for display
-				theta = Math.toDegrees(theta);
-			}
-
-			// this ensures that the odometer only runs once every period
-			updateEnd = System.currentTimeMillis();
-			if (updateEnd - updateStart < ODOMETER_PERIOD) {
-				try {
-					Thread.sleep(ODOMETER_PERIOD - (updateEnd - updateStart));
-				} catch (InterruptedException e) {
-					// there is nothing to be done here because it is not
-					// expected that the odometer will be interrupted by
-					// another thread
-				}
-			}
+			//finding new x and y coordinates
+			calculateChangeInDisplacement();
+			x = x + changeInDisplacement * Math.cos(theta + changeInTheta/2);
+			y = y + changeInDisplacement * Math.sin(theta + changeInTheta/2);
+			
+			//calculating the new theta
+			theta = theta - changeInTheta;
+			//changing to degrees for display
+			theta = Math.toDegrees(theta);
+			
+			double lSpeed = leftMotor.getRotationSpeed();
+			double rSpeed = rightMotor.getRotationSpeed();
+			if(lSpeed == rSpeed)
+				corrector.update(lSpeed, theta, x, y);
+			
+			if(corrector.isUpdateAvailable())
+				theta = corrector.getNewTheta();
 		}
 	}
 	
@@ -92,8 +95,8 @@ public class Odometer extends Thread {
 	public void updateTacho() {
 		
 		//reading new tacho values
-		tachoL = Motor.A.getTachoCount();
-		tachoR = Motor.B.getTachoCount();
+		tachoL = leftMotor.getTachoCount();
+		tachoR = rightMotor.getTachoCount();
 		
 		//finding difference between old and new tacho readings
 		changeInTachoL = tachoL - lastTachoL;
