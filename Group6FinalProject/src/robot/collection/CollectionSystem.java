@@ -24,20 +24,8 @@ public class CollectionSystem extends Thread {	//why is this a thread with no ru
 	//Motor rotations will be defined to be positive when cage is moving up and negative when cage is moving down,
 	//and negative when opening the cage and positive when closing the cage.
 	
-	
-	//This design operates by first navigating the robot to an appropriate position.  This method is responsible to
-	//lower the cage over the block and loosen to allow the new block to come into the cage.
-	public void collectD1() {
-		//assume cage starts at an angle of 45 degrees
-		//positioning?
-			//robot.navigation.Navigation.turnTo(angle); --> rotate robot so cage is over the discovered block.
-		cageMotor.rotate(-elevate + openClaw);
-		cageMotor.rotate(-openClaw + elevate);
-		//...and that's all, folks.
-	}
-	
 	//This design uses tread system and assumes a feedback system from the cage to confirm that the brick has fallen into the cage
-	public void collectD2() {
+	public void collect() {
 		//while (brickNotInCage) --> some method/sensor feedback here
 		//motors rotate
 	}
