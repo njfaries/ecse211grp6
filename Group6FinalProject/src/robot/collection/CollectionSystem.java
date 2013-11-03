@@ -2,6 +2,13 @@ package robot.collection;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 
+/**
+ * Positions the robot in such a way that it can collect the block then collects the block.
+ * Also deals with releasing the stack after the cage is full.
+ * 
+ * @author Nathaniel
+ *
+ */
 public class CollectionSystem extends Thread {
 	
 	private NXTRegulatedMotor motor1;

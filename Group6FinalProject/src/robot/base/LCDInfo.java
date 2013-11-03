@@ -28,7 +28,7 @@ public class LCDInfo extends Thread {
 			LCD.drawString("T:              ", 0, 2);
 
 			// get the odometry information
-			odometer.getPosition(position, new boolean[] { true, true, true });
+			odometer.getPosition(position);
 
 			// display odometry information
 			for (int i = 0; i < 3; i++) {

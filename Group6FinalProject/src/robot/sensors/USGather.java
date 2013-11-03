@@ -2,9 +2,16 @@ package robot.sensors;
 import java.util.Arrays;
 
 import robot.navigation.Odometer;
+import lejos.util.Timer;
 import lejos.util.TimerListener;
 import lejos.nxt.UltrasonicSensor;
 
+/**
+ * Gathers information from the Ultrasonic sensor and filters out bad values.
+ * 
+ * @author Michael
+ *
+ */
 public class USGather implements TimerListener {
 	
 	private int distance;
@@ -14,10 +21,20 @@ public class USGather implements TimerListener {
 	private final static int FILTER_OUT = 5;
 	private final int SLEEP_TIME = 10;
 	private final int WALL_ERROR = 20;
+	private double[] pos = new double[3];
 	private UltrasonicSensor us;
 	
+	private Object lock = new Object();
+	
+	/**
+	 * Takes in the ultrasonic sensor from which to gather data.
+	 * @param us - The ultrasonic sensor gathering the information.
+	 */
 	public USGather(UltrasonicSensor us) {
 		this.us = us;
+		
+		Timer timer = new Timer(25, this);
+		timer.start();
 	}
 	
 	public void testCoord() {
@@ -25,14 +42,20 @@ public class USGather implements TimerListener {
 	}
 	
 	public void timedOut() {
-		
+		synchronized(lock){
+			distance = getFilteredData();
+		}
 	}
 	
 	public void updateReadValues(double d) {
 
 	}
 	
-	//method to scan an array of value at a range and update an array of places to travel to 
+	/**
+	 * Scans an array of values at a range and update an array of navigation options
+	 *  
+	 * @param range - The max distance at which to detect and object.
+	 */
 	public void scan(int range) {
 		
 	}
@@ -42,7 +65,7 @@ public class USGather implements TimerListener {
 	}
 	
 	//getFilteredData will return an int after filtering out 255 values
-	public int getFilteredData() {
+	private int getFilteredData() {
 		filter = true;
 		int filterControl = 0;
 			
@@ -68,10 +91,12 @@ public class USGather implements TimerListener {
 	}
 	
 	//method to test and filter out wall readings and filtering out found blocks
-	public int filterWall(int reading) {
-		double x = Odometer.getX();
-		double y = Odometer.getY();
-		double theta = Odometer.getTheta();
+	private int filterWall(int reading) {
+		Odometer.getPosition(pos);
+		double x = pos[0];
+		double y = pos[1];
+		double theta = pos[2];
+		
 		//find the x and y coordinate at distance being read
 		double readX = x + reading*Math.cos(Math.toRadians(theta));
 		double readY = y + reading*Math.sin(Math.toRadians(theta));

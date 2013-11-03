@@ -1,27 +1,37 @@
 package robot.sensors;
 
 import lejos.nxt.ColorSensor;
-import lejos.nxt.Sound;
 import lejos.util.TimerListener;
 
+/**
+ * Takes in data from the three color sensor on the robot. One on the front. Two on the bottom.
+ * Also determines whether or not a sensor is on a gridline.
+ * 
+ * @version 2.0
+ * @author Andreas
+ *
+ */
 public class ColorGather implements TimerListener {
 	
 	private double currentColorFront;
 	private double currentColorBack;
 	private double currentColorBlock;
-	private ColorSensor csFront;
-	private ColorSensor csBack;
-	private ColorSensor csBlockReader;
+	private ColorSensor csLeft, csRight, csBlockReader;
 	
 	private double[] lightReadingsBlock, lightReadingsFront, lightReadingsBack, diffsFront, diffsBack;
 	private int readingNum;
 	private boolean isOnLine;
 	
-	//should i correct odometer in this class?? no.
-	
-	public ColorGather(ColorSensor csFront, ColorSensor csBack, ColorSensor csBlockReader) {
-		this.csFront = csFront;
-		this.csBack = csBack;
+	/**
+	 * In order to gather color information. The ColorGather needs to have access to the three color sensors
+	 * 
+	 * @param csFront - The front o
+	 * @param csBack
+	 * @param csBlockReader
+	 */
+	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader) {
+		this.csLeft = csLeft;
+		this.csRight = csRight;
 		this.csBlockReader = csBlockReader;
 		
 		lightReadingsBlock = new double[7];
@@ -41,8 +51,8 @@ public class ColorGather implements TimerListener {
 		
 		// Gets light readings;
 		currentColorBlock = csBlockReader.getRawLightValue();
-		currentColorFront = csFront.getRawLightValue();
-		currentColorBack = csBack.getRawLightValue();
+		currentColorFront = csLeft.getRawLightValue();
+		currentColorBack = csRight.getRawLightValue();
 				
 		// Puts them in an array
 		lightReadingsBlock[readingNum] = currentColorBlock;
@@ -60,13 +70,17 @@ public class ColorGather implements TimerListener {
 		}		
 	}
 	
+	/**
+	 * Determines if the light sensor in the front of the robot is detecting a Styrofoam block.
+	 * @return
+	 */
 	public boolean isBlockBlue() {
 		return false;
 	}
 	
-	//likely have to sleep timer in this case, can you sleep a timer? i think so...
 	/**
 	 * Determines if a current sensor is currently over a line. The input parameter determines which sensor is checked.
+	 * 
 	 * @param sensor front:0 back:1
 	 * @return boolean onLine
 	 */
@@ -88,14 +102,7 @@ public class ColorGather implements TimerListener {
 			isOnLine = true;
 		else if(isOnLine && sumDiff > 10)
 			isOnLine = false;
-		
-/*		if(isOnLine)
-			Sound.beep(); //BEEP!
-*/		
+
 		return isOnLine;
-	}
-	
-	public void updateBoardColor() {
-		
 	}
 }

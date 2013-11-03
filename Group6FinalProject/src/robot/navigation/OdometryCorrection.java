@@ -2,6 +2,13 @@ package robot.navigation;
 
 import robot.sensors.ColorGather;
 
+/**
+ * Calculates the current position and heading of the robot whenever it crosses a gridline. Requires both light sensors
+ * to cross the gridline before being able to calculate values.
+ * 
+ * @author Andreas
+ * @version 1.0
+ */
 public class OdometryCorrection {
 	private static double WHEEL_RADIUS;
 	private static double SENSOR_WIDTH;
@@ -13,17 +20,28 @@ public class OdometryCorrection {
 	private boolean updateX, updateY, updateT, newLeftData, newRightData;
 	private double newX, newY, newT;
 	
-	public OdometryCorrection(ColorGather cg, double wheelRad, double sensorWidth, double sensorDist){
+	/**
+	 * In order to correct the position and heading, the OdometryCorrection class must use information gathered from
+	 * the ColorGather class in order to determine when it has crossed a line. It also requires constants like the
+	 * radius of the wheels, the distance between the two sensors and the distance from the sensors to robot's axis 
+	 * of rotation
+	 * 
+	 * @param colorGather - The ColorGather class being used
+	 * @param wheelRad - The radius of the wheels (constant)
+	 * @param sensorWidth - The distance between the center of the two light sensor (constant)
+	 * @param sensorDist - The distance from the two light sensors to the robot's axis of rotation
+	 */
+	public OdometryCorrection(ColorGather colorGather, double wheelRad, double sensorWidth, double sensorDist){
 		WHEEL_RADIUS = wheelRad;
 		SENSOR_WIDTH = sensorWidth;
 		SENSOR_DISTANCE = sensorDist;
 		
-		this.cg = cg;
+		this.cg = colorGather;
 		updateX = false;
 		updateY = false;
 		updateT = false;
-		
 	}
+	
 	/**
 	 * Updates the odometry correction class. Allows for the calculation of more accurate
 	 * values for the robot's position and heading when the robot crosses a gridline.
@@ -34,7 +52,7 @@ public class OdometryCorrection {
 	 * @param y - current recorded y value (to be corrected)
 	 * @param speed - forward unsigned speed of the robot (to be used in calculations)
 	 */
-	public void update(double theta, double x, double y, double speed){
+	public void update(double[] data, double speed){
 		long currTime = System.currentTimeMillis();
 		
 		if(cg.isOnLine(0) && !newLeftData){
@@ -42,9 +60,9 @@ public class OdometryCorrection {
 			newLeftData = true;
 			
 			if(newRightData){
-				getNewAngle(theta, speed, leftTime, rightTime);
+				getNewAngle(data[2], speed, leftTime, rightTime);
 				if(updateT)
-					getNewPosition(x, y);
+					getNewPosition(data[0], data[1]);
 			}
 		}
 		if(cg.isOnLine(1) && !newRightData){
@@ -52,9 +70,9 @@ public class OdometryCorrection {
 			newRightData = true;
 			
 			if(newLeftData){
-				getNewAngle(theta, speed, rightTime, leftTime);
+				getNewAngle(data[2], speed, rightTime, leftTime);
 				if(updateT)
-					getNewPosition(x, y);
+					getNewPosition(data[0], data[1]);
 			}
 		}
 		if(!cg.isOnLine(0) && !cg.isOnLine(1) && newRightData && newLeftData){
@@ -63,11 +81,11 @@ public class OdometryCorrection {
 		}
 		
 		if(updateX)
-			x = this.newX;
+			data[0] = this.newX;
 		if(updateY)
-			y = this.newY;
+			data[1] = this.newY;
 		if(updateT)
-			theta = this.newT;
+			data[2] = this.newT;
 	}
 	
 	// Gets the new angle based on the time between the crossing of both sensors, 
@@ -93,6 +111,8 @@ public class OdometryCorrection {
 			updateT = false;
 	}
 	
+	// Approximates the current position by determining if the robot is close to any particular
+	// gridline at recorded time of crossing. If two candidates exist, the position is not updated
 	private void getNewPosition(double oldX, double oldY){
 		double adjustedX = oldX + SENSOR_DISTANCE * Math.sin(Math.toDegrees(newT));
 		double adjustedY = oldY + SENSOR_DISTANCE * Math.cos(Math.toDegrees(newT));
@@ -105,11 +125,18 @@ public class OdometryCorrection {
 		if(lineDistY > 15)
 			lineDistY -= 30;
 		
-		if(lineDistX > 2 && lineDistX < 2){
+		if((lineDistX > 2 && lineDistX < 2) && (lineDistY > 2 && lineDistY < 2)){
+			newX = oldX;
+			updateX = false;
+			
+			newY = oldY;
+			updateY = false;
+		}
+		else if(lineDistX > 2 && lineDistX < 2){
 			newX = adjustedX - lineDistX;
 			updateX = true;
 		}
-		if(lineDistY > 2 && lineDistY < 2){
+		else if(lineDistY > 2 && lineDistY < 2){
 			newY = adjustedY - lineDistY;
 			updateY = true;
 		}

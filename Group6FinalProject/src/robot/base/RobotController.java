@@ -11,21 +11,23 @@ import lejos.nxt.LCD;
 import lejos.util.TimerListener;
 import lejos.nxt.SensorPort;
 
-//could delegate to multiple controller classes instead...
-
+/**
+ * Contains the main method for the robot.
+ * Initiates classes and passes them the necessary motors, sensors, and various constants.
+ * 
+ * @author Andreas
+ * @version 1.0
+ */
 public class RobotController {
-	private static double WHEEL_RADIUS = 2.1, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
+	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
 	private static NXTRegulatedMotor leftMotor;
 	private static NXTRegulatedMotor rightMotor;
-	private static NXTRegulatedMotor frontSenMotor;
-	private static NXTRegulatedMotor backSenMotor;
 	private static NXTRegulatedMotor motor1;
 	private static NXTRegulatedMotor motor2;
 	private static NXTRegulatedMotor motor3;
 	private static NXTRegulatedMotor motor4;
 	private static UltrasonicSensor usFront;
-	private static UltrasonicSensor usBack;
 	private static ColorSensor csFront;
 	private static ColorSensor csBack;
 	private static ColorSensor csBlockReader;
@@ -34,9 +36,8 @@ public class RobotController {
 	private static Odometer odo;
 	private static Map map;
 	private static LCDInfo lcd;
-	private static SensorMotor _frontSenMotor;
-	private static SensorMotor _backSenMotor;
 	private static Navigation nav;
+	private static TwoWheeledRobot robo;
 	private static USGather us;
 	private static ColorGather cg;
 	private static CollectionSystem collection;
@@ -45,15 +46,13 @@ public class RobotController {
 	public static void main(String[] args) {
 		new RobotController();
 	}
-	public RobotController(){
-		_frontSenMotor = new SensorMotor(frontSenMotor);
-		_backSenMotor = new SensorMotor(backSenMotor);
-		
-		us = new USGather(usFront, usBack, _frontSenMotor, _backSenMotor);
+	public RobotController(){		
+		us = new USGather(usFront);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
 		
+		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		odo = new Odometer(leftMotor, rightMotor, corrector);
+		odo = new Odometer(robo, corrector);
 		
 		lcd = new LCDInfo(odo);
 		nav = new Navigation(odo, leftMotor, rightMotor);
