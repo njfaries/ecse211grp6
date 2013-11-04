@@ -3,13 +3,9 @@ import robot.collection.*;
 import robot.navigation.*;
 import robot.sensors.*;
 
-import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.UltrasonicSensor;
-import lejos.nxt.LCD;
-import lejos.util.TimerListener;
-import lejos.nxt.SensorPort;
 
 /**
  * Contains the main method for the robot.
@@ -35,8 +31,6 @@ public class RobotController {
 	private static OdometryCorrection corrector;
 	private static Odometer odo;
 	private static Map map;
-	private static LCDInfo lcd;
-	private static Navigation nav;
 	private static TwoWheeledRobot robo;
 	private static USGather us;
 	private static ColorGather cg;
@@ -49,13 +43,13 @@ public class RobotController {
 	public RobotController(){		
 		us = new USGather(usFront);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
+		map = new Map();
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
 		odo = new Odometer(robo, corrector);
 		
-		lcd = new LCDInfo(odo);
-		nav = new Navigation(odo, leftMotor, rightMotor);
+		new LCDInfo(odo);
 		collection = new CollectionSystem(motor1, motor2, motor3, motor4);
 	}
 	

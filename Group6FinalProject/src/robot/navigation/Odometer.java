@@ -1,15 +1,14 @@
 package robot.navigation;
-import lejos.nxt.Motor;
-import lejos.nxt.NXTRegulatedMotor;
 import lejos.util.Timer;
 import lejos.util.TimerListener;
 
 /**
- * Keeps up-to-date information about the location and heading of the robot.
+ * Keeps up-to-date information about the location and heading of the robot. Also contains the Navigation and
+ * TwoWheeledRobot classes to be used by the robot.
  * 
- * @version 1.0
+ * @version 2.0
  * @author Andreas
- *
+ * @since 11/03/2013
  */
 public class Odometer implements TimerListener {
 	
@@ -22,9 +21,7 @@ public class Odometer implements TimerListener {
 	// position data
 	private static double x, y, theta;
 	private double [] oldDH, dDH;
-	
-	
-	
+
 	// lock object for mutual exclusion
 	private static Object lock;
 
@@ -42,9 +39,10 @@ public class Odometer implements TimerListener {
 		theta = Math.PI / 180;
 		lock = new Object();
 		
-		this.corrector = corrector;
 		this.robo = robo;
-		
+		this.nav = new Navigation(robo);
+		this.corrector = corrector;
+				
 		Timer timer = new Timer(DEFAULT_PERIOD, this);
 		timer.start();
 	}
@@ -93,11 +91,17 @@ public class Odometer implements TimerListener {
 			position[2] = theta;
 		}
 	}
-
+	/**
+	 * Returns the TwoWheeledRobot class used by the Odometer and Navigation classes
+	 * @return TwoWheeledRobot robo
+	 */
 	public TwoWheeledRobot getTwoWheeledRobot() {
 		return robo;
 	}
-	
+	/**
+	 * Returns the navigation class used by the Odometer
+	 * @return Navigation nav
+	 */
 	public Navigation getNavigator() {
 		return this.nav;
 	}
@@ -124,19 +128,10 @@ public class Odometer implements TimerListener {
 
 	
 	// static 'helper' methods
-	public static double fixDegAngle(double angle) {		
+	private double fixDegAngle(double angle) {		
 		if (angle < 0.0)
 			angle = 360.0 + (angle % 360.0);
 		
 		return angle % 360.0;
-	}
-	
-	public static double minimumAngleFromTo(double a, double b) {
-		double d = fixDegAngle(b - a);
-		
-		if (d < 180.0)
-			return d;
-		else
-			return d - 360.0;
 	}
 }

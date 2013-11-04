@@ -16,6 +16,7 @@ public class CollectionSystem extends Thread {
 	private NXTRegulatedMotor motor3;
 	private NXTRegulatedMotor motor4;
 	
+
 	public CollectionSystem(NXTRegulatedMotor motor1, NXTRegulatedMotor motor2, NXTRegulatedMotor motor3, NXTRegulatedMotor motor4) {
 		this.motor1 = motor1;
 		this.motor2 = motor2;

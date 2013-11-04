@@ -1,7 +1,14 @@
 package robot.sensors;
-import java.lang.Math.*;
+import java.lang.Math;
+
+/**
+ * Construct that takes in the distance data about a block then finds the block's corners and line slopes to
+ * generate a virtual representation of object in question.
+ * 
+ * @author Michael
+ *
+ */
 public class Coordinates {
-	
 	//private final int SCOPE_SIZE = 5;
 	//this will take A LOT of fine tuning
 	private final double LATCH_MIDDLE_SLOPE_THRESH = 0.3;
@@ -33,7 +40,7 @@ public class Coordinates {
 	}
 	
 	//convert to (x,y)
-	public void convertToXY() {
+	private void convertToXY() {
 		double curDist = 0;
 		double curRadians = 0;
 		for(int i = 0; i < xs.length; i++) {
@@ -41,13 +48,13 @@ public class Coordinates {
 			curRadians = Math.toRadians(ys[i]);
 			//need to add odo.getX() and odo.getY() HERE!!!!
 			//also take into account robots odo.getTheta() in constructor!!!!
-			xs[i] = scannedAtPositionX + curDist*Math.cos(curRadians);
-			ys[i] = scannedAtPositionY + curDist*Math.sin(curRadians);
+			xs[i] = scannedAtPositionX + curDist * Math.cos(curRadians);
+			ys[i] = scannedAtPositionY + curDist * Math.sin(curRadians);
 		}
 	}
 	
 	//generate slopes from x and y coordinates
-	public double[] generateSlopes() {
+	private double[] generateSlopes() {
 		int slopesLen = xs.length;
 		double[] slopes = new double[slopesLen - 1];
 		for(int i = 0; i < slopesLen - 1; i++) {
@@ -57,7 +64,7 @@ public class Coordinates {
 	}
 	
 	//method to find left corner block index
-	public int findLeftIndex() {
+	private int findLeftIndex() {
 		for(int i = 0; i < slopes.length - 1; i++) {
 			if(Math.abs(slopes[i] - slopes[i+1]) > OUTSIDE_LATCH_THRESH) {
 				return i+1;
@@ -68,7 +75,7 @@ public class Coordinates {
 	}
 	
 	//method to find right corner block index
-	public int findRightIndex() {
+	private int findRightIndex() {
 		for(int i = slopes.length - 1; i > 0; i--) {
 			if(Math.abs(slopes[i] - slopes[i-1]) > OUTSIDE_LATCH_THRESH) {
 				return i - 1;
@@ -79,7 +86,7 @@ public class Coordinates {
 	}
 	
 	//method to find middle corner block index
-	public int findMiddleIndex() {
+	private int findMiddleIndex() {
 		for(int i = leftLatchedIndex; i < rightLatchedIndex - 1; i++) {
 			if(Math.abs(slopes[i+1] - slopes[i]) > LATCH_MIDDLE_SLOPE_THRESH) {
 				latchMiddle = true;
@@ -92,7 +99,7 @@ public class Coordinates {
 	}
 	
 	//method to generate boundary equations based on attributes initiated
-	public double[] generateBoundaryEquations() {
+	private double[] generateBoundaryEquations() {
 		//generate two line if latchMiddle is true and one if not
 		if(latchMiddle == true) {
 			double[] es = new double[4];
@@ -115,28 +122,38 @@ public class Coordinates {
 
 	
 	//helper to return a distance between two points
-	public double longSide(double x1, double y1, double x2, double y2) {
+	private double longSide(double x1, double y1, double x2, double y2) {
 		return Math.sqrt((x2-x1)*(x2-x1) + (y2 - y1)*(y2 - y1));
 	}
 	
 	//helper to find slope based on four points
-	public double findSlope(double x1, double y1, double x2, double y2) {
+	private double findSlope(double x1, double y1, double x2, double y2) {
 		return (y2 - y1)/(x2 - x1);
 	}
 	
 	//helper to find y-intercept based on a slope and point
-	public double findYIntercept(double m, double x, double y) {
+	private double findYIntercept(double m, double x, double y) {
 		return y - m*x;
 	}
 
+	/**
+	 * Returns the boundary equations for an object
+	 * @return boundaryEquations
+	 */
 	public double[] getBoundaryEquations() {
 		return boundaryEquations;
 	}
-	
+	/**
+	 * Returns an array of the X values of an object
+	 * @return double[] xs
+	 */
 	public double[] getXs() {
 		return xs;
 	}
-	
+	/**
+	 * Returns an array of the Y values of an object
+	 * @return double[] ys
+	 */
 	public double[] getYs() {
 		return ys;
 	}

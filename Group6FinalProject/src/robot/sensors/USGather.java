@@ -10,7 +10,7 @@ import lejos.nxt.UltrasonicSensor;
  * Gathers information from the Ultrasonic sensor and filters out bad values.
  * 
  * @author Michael
- *
+ * @version 1.0
  */
 public class USGather implements TimerListener {
 	

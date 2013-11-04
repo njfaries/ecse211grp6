@@ -1,30 +1,28 @@
 package robot.navigation;
-import lejos.nxt.NXTRegulatedMotor;
+
+import lejos.util.Timer;
 import lejos.util.TimerListener;
 
 /**
- * The navigation class that is responsible for moving the robot from point A to point B
+ * The navigation class that is responsible for moving the robot from point A to point B and/or rotabe by an angle T
+ * 
  * @author Andreas
- *
+ * @version 1.0
+ * @since 11/03/2013
  */
 public class Navigation implements TimerListener {
+	private final double FORWARD_SPEED = 10;
+	private final double ROTATION_SPEED = 20;
+	private final double ANGLE_ERROR_THRESH = 1;
+	private final double DIST_ERROR_THRESH = 1;
 	
-	private NXTRegulatedMotor leftMotor;
-	private NXTRegulatedMotor rightMotor;
-	private Odometer odometer;
+	private TwoWheeledRobot robo;
 	//will need getters and setters
-	private double destinationX;
-	private double destinationY;
-	private double destinationT;
+	private double destinationX, destinationY, destinationT;
+	private int turnDirection;
 	
 	private double[] pos = new double[3];
-	
-	private final double WHEEL_RADIUS = 2.125;
-	private final double WHEEL_BASE = 15.2;
-	private final double DEST_RADIUS = 0.3;
-	private final double MAX_HEADING_ERROR = 5.0;
-	private final double MAX_TURN_TO_ERROR = 1.0;
-	
+		
 	private boolean done = true;
 	private boolean traveling = false;
 	private boolean turning = false;
@@ -37,34 +35,95 @@ public class Navigation implements TimerListener {
 	 * @param leftMotor - Motor for the left wheel
 	 * @param rightMotor - Motor for the right wheel
 	 */
-	public Navigation(Odometer odometer, NXTRegulatedMotor leftMotor, NXTRegulatedMotor rightMotor) {
-		this.leftMotor = leftMotor;
-		this.rightMotor = rightMotor;
-		this.odometer = odometer;
+	public Navigation(TwoWheeledRobot robo) {
+		this.robo = robo;
+		
+		Timer timer = new Timer(20, this);
+		timer.start();
 	}
 	
+	@Override
 	public void timedOut() {
 		if(done)
 			return;
+		
+		Odometer.getPosition(pos);
+		
+		// Calculates the position and heading differences
+		double dX = destinationX - pos[0];
+		double dY = destinationY - pos[1];
+		double dT = destinationT - pos[2];
+		if(destinationT == -1)
+			dT = getAngle(dX, dY) - pos[2];
+		
+		// Checks if rotation is necessary
+		if(Math.abs(dT) > ANGLE_ERROR_THRESH)
+			turning = true;
+		else
+			turning = false;
+		// Checks if traveling is necessary
+		if(dX > DIST_ERROR_THRESH || dY > DIST_ERROR_THRESH)
+			traveling = true;
+		else
+			traveling = false;
+		
+		// Movement methods called here
+		if(turning)
+			turnBy(dT);
+		else if(traveling)
+			travel();
+		else
+			stop();
+		
 	}
+	// Travel to a point (this is called after the robot is oriented so only forward movement is necessary)
 	private void travel(){
+		robo.setRotationSpeed(0);
+		robo.setForwardSpeed(FORWARD_SPEED);
+	}
+	// Turn by a specific amount
+	private void turnBy(double theta){
+		robo.setForwardSpeed(0);
+		
+		if(turnDirection == 1){
+			robo.setRotationSpeed(ROTATION_SPEED);
+		}
+		else if(turnDirection == 2){
+			robo.setRotationSpeed(-ROTATION_SPEED);
+		}
+		else{
+			if((theta > 0 && theta <= 180) || (theta > -360 && theta < -180))
+				turnDirection = 1;
+			else if((theta > 180 && theta < 360) || (theta >= -180 && theta < 0))
+				turnDirection = 2;
+			else
+				return;
+
+			turnBy(theta);
+		}
 		
 	}
-	private void turn(){
+	// Calculate an angle by observing the distances in X and Y needed to be travelled by
+	private double getAngle(double dX, double dY){
+		double angle = 90 - Math.atan(dX / dY);
+		if(angle < 0)
+			angle += 360;
+		else if(angle >= 360)
+			angle -= 360;
 		
+		return angle;
 	}
-	
 	
 	
 	/**
 	 * Initiates the traveling to a particular point
-	 * 
 	 * @param x - The destination x value
 	 * @param y - The destination y value
 	 */
 	public void travelTo(double x, double y) {
 		destinationX = x;
 		destinationY = y;
+		destinationT = -1;
 		
 		traveling = true;
 		done = false;
@@ -72,20 +131,24 @@ public class Navigation implements TimerListener {
 		
 	/**
 	 * Initiates the turning to a particular angle
-	 * @param theta
+	 * @param theta - The angle to turn to
+	 * @param direction - The direction to turn 0:don't care; 1:clockwise; 2:counter clockwise
 	 */
-	public void turnTo(double theta) {
+	public void turnTo(double theta, int direction) {
+		destinationX = -1;
+		destinationY = -1;
 		destinationT = theta;
+		turnDirection = direction;
 		
 		turning = true;
 		done = false;
 	}
 	
 	/**
-	 * Stops all processes
+	 * Full stop for all movement
 	 */
 	public void stop() {
-		odometer.getPosition(pos);
+		Odometer.getPosition(pos);
 		
 		destinationX = pos[0];
 		destinationY = pos[1];
@@ -94,5 +157,8 @@ public class Navigation implements TimerListener {
 		done = true;
 		traveling = false;
 		turning = false;
+		
+		robo.setForwardSpeed(0);
+		robo.setRotationSpeed(0);
 	}
 }

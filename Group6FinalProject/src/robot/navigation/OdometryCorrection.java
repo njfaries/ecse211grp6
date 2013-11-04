@@ -43,14 +43,13 @@ public class OdometryCorrection {
 	}
 	
 	/**
-	 * Updates the odometry correction class. Allows for the calculation of more accurate
+	 * Provides updated postion and heading data. Updates the 'data' array passed with 
+	 * (if possible to calculate) new data. Allows for the calculation of more accurate
 	 * values for the robot's position and heading when the robot crosses a gridline.
 	 * Passes x, y, and theta back to the caller.
 	 * 
-	 * @param theta - angle at which the robot is facing (value to be corrected)
-	 * @param x - current recorded x value (to be corrected)
-	 * @param y - current recorded y value (to be corrected)
-	 * @param speed - forward unsigned speed of the robot (to be used in calculations)
+	 * @param data - The array containing current x, y, and theta values. This array will be updated with corrected values if available.
+	 * @param speed - Forward unsigned speed of the robot (to be used in calculations)
 	 */
 	public void update(double[] data, double speed){
 		long currTime = System.currentTimeMillis();

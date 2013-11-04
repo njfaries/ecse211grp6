@@ -1,6 +1,12 @@
 package robot.navigation;
-public class Map {
 
+/**
+ * Contains information about obstacles on the observed playing field
+ * 
+ * @author Andreas
+ * @verions 1.0
+ */
+public class Map {
 	//arrays need to be filled upon construction to avoid null pointers
 	private int[] wallCorners;
 	private double[] wallBoundaryEquations;
@@ -11,6 +17,9 @@ public class Map {
 	private double[] finalDestinationCorners;
 	private double[] finalDestinationBoundaryEquations;
 	
+	public Map(){
+		
+	}
 	public boolean checkReadingWall(double readX, double readY) {
 		return false;
 	}
