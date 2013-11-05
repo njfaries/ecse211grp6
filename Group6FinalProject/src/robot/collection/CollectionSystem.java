@@ -1,5 +1,5 @@
 package robot.collection;
-import lejos.nxt.Motor;
+
 import lejos.nxt.NXTRegulatedMotor;
 
 /**
@@ -7,7 +7,8 @@ import lejos.nxt.NXTRegulatedMotor;
  * Also deals with releasing the stack after the cage is full.
  * 
  * @author Nathaniel
- *
+ * @version 1.0.0
+ * @since
  */
 public class CollectionSystem extends Thread {
 	

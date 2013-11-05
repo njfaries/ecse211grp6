@@ -7,9 +7,9 @@ import lejos.util.TimerListener;
  * Takes in data from the three color sensor on the robot. One on the front. Two on the bottom.
  * Also determines whether or not a sensor is on a gridline.
  * 
- * @version 2.0
+ * @version 2.0.0
  * @author Andreas
- *
+ * @since 
  */
 public class ColorGather implements TimerListener {
 	

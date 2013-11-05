@@ -6,6 +6,8 @@ import java.lang.Math;
  * generate a virtual representation of object in question.
  * 
  * @author Michael
+ * @version 1.0.0
+ * @since
  *
  */
 public class Coordinates {

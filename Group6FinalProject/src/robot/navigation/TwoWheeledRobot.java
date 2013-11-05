@@ -5,7 +5,8 @@ import lejos.nxt.NXTRegulatedMotor;
  * The two wheeled robot class. Deals with movement of the wheels and measuring their displacement.
  * 
  * @author Andreas
- * @version 1.0
+ * @version 1.0.0
+ * @since 2013-11-03
  */
 public class TwoWheeledRobot {
 	public static final double DEFAULT_LEFT_RADIUS = 2.125;

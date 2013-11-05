@@ -3,12 +3,11 @@ import lejos.util.Timer;
 import lejos.util.TimerListener;
 
 /**
- * Keeps up-to-date information about the location and heading of the robot. Also contains the Navigation and
- * TwoWheeledRobot classes to be used by the robot.
+ * Keeps up-to-date information about the location and heading of the robot.
  * 
- * @version 2.0
  * @author Andreas
- * @since 11/03/2013
+ * @version 2.0.0
+ * @since 2013-11-03
  */
 public class Odometer implements TimerListener {
 	

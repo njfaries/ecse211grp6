@@ -4,11 +4,11 @@ import lejos.util.Timer;
 import lejos.util.TimerListener;
 
 /**
- * The navigation class that is responsible for moving the robot from point A to point B and/or rotabe by an angle T
+ * The navigation class that is responsible for moving the robot from point A to point B and/or rotate by an angle T
  * 
  * @author Andreas
- * @version 1.0
- * @since 11/03/2013
+ * @version 1.0.1
+ * @since 2013-11-04
  */
 public class Navigation implements TimerListener {
 	private final double FORWARD_SPEED = 10;
@@ -145,20 +145,32 @@ public class Navigation implements TimerListener {
 	}
 	
 	/**
-	 * Full stop for all movement
+	 * Full stop of all movement
+	 * @return void
 	 */
-	public void stop() {
-		Odometer.getPosition(pos);
-		
-		destinationX = pos[0];
-		destinationY = pos[1];
-		destinationT = pos[2];
-		
+	public void stop() {				
 		done = true;
 		traveling = false;
 		turning = false;
 		
 		robo.setForwardSpeed(0);
 		robo.setRotationSpeed(0);
+	}
+	
+	/**
+	 * Continues with the current path (to be used mainly if the robot has had to stop to the other player
+	 * and wants to continue to the same waypoint)
+	 * @return void
+	 */
+	public void cont(){
+		this.travelTo(destinationX, destinationY);
+	}
+	
+	/**
+	 * Determines if the navigation is actually running (if true, implies it is not)
+	 * @return boolean: done
+	 */
+	public boolean isDone(){
+		return done;
 	}
 }
