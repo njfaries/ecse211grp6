@@ -12,18 +12,31 @@ import lejos.nxt.NXTRegulatedMotor;
  * @since
  */
 public class CollectionSystem extends Thread {
-	
-	private NXTRegulatedMotor clawMotor;
+	private static final int elevate = 180; //experimentally determined number of degrees the motor must rotate to reach a 45 degree angle.
+    private static final int openClaw = -140; //experimentally determined number of degrees the motor must rotate to open the claw.
+    
+	private NXTRegulatedMotor cageMotor;
 	private Navigation nav;
 	
 	private boolean done = true, captureBlock = false, releaseStack = false;
 	
-	public CollectionSystem(NXTRegulatedMotor clawMotor, Navigation nav) {
-		this.clawMotor = clawMotor;
+	/**
+	 * The collection system requires access to the motor controlling the cage in order to collect the block. It also
+	 * requires the Navigation method in order to orient the robot properly so that the block can be collected.
+	 * @param cageMotor - The motor controlling the cage/claw
+	 * @param nav - The Navigation class being used
+	 */
+	public CollectionSystem(NXTRegulatedMotor cageMotor, Navigation nav) {
+		this.cageMotor = cageMotor;
 		this.nav = nav;
 		
 		this.start();
 	}
+	
+    //cage will start at what position?  This is important...
+    //Motor rotations will be defined to be positive when cage is moving up and negative when cage is moving down,
+    //and negative when opening the cage and positive when closing the cage.
+	
 	@Override
 	public void run(){
 		while(true){
@@ -42,14 +55,23 @@ public class CollectionSystem extends Thread {
 			}
 		}
 	}
-	// Orients the robot if necessary and collects the block
+
+	// Determines if the robot needs to be oriented then collects the block
 	private void collect(){
+		// If robot needs to be oriented
+		// orientRobot();
 		
 		captureBlock = false;
+		cageMotor.rotate(-elevate + openClaw);
+        cageMotor.rotate(-openClaw + elevate);
+	}
+	// Orients the robot
+	private void orientRobot(){
+		// Orients the robot
 	}
 	// Releases all the cages contents
 	private void release(){
-		
+		cageMotor.rotate(-elevate + openClaw);
 		releaseStack = true;
 	}
 	
