@@ -1,42 +1,112 @@
 package robot.sensors;
+import java.util.Arrays;
+
 import robot.navigation.Odometer;
+import lejos.util.Timer;
 import lejos.util.TimerListener;
 import lejos.nxt.UltrasonicSensor;
 
+/**
+ * Gathers information from the Ultrasonic sensor and filters out bad values.
+ * 
+ * @author Michael
+ * @version 1.0.0
+ * @since 
+ */
 public class USGather implements TimerListener {
 	
-	private double distance;
-	private double readX;
-	private double readY;
+	private int distance;
+	private boolean filter;
 	
-	private UltrasonicSensor usFront;
-	private UltrasonicSensor usBack;
-	private Odometer odo;
-	private SensorMotor frontSenMotor;
-	private SensorMotor backSenMotor;
+	private final int SEN_TO_CENTER = 7;
+	private final static int FILTER_OUT = 5;
+	private final int SLEEP_TIME = 10;
+	private final int WALL_ERROR = 20;
+	private double[] pos = new double[3];
+	private UltrasonicSensor us;
 	
-	public USGather(Odometer odo, UltrasonicSensor usFront, UltrasonicSensor usBack, SensorMotor frontSenMotor, SensorMotor backSenMotor) {
-		this.usFront = usFront;
-		this.usBack = usBack;
-		this.odo = odo;
-		this.frontSenMotor = frontSenMotor;
-		this.backSenMotor = backSenMotor;
+	private Object lock = new Object();
+	
+	/**
+	 * Takes in the ultrasonic sensor from which to gather data.
+	 * @param us - The ultrasonic sensor gathering the information.
+	 */
+	public USGather(UltrasonicSensor us) {
+		this.us = us;
+		
+		Timer timer = new Timer(25, this);
+		timer.start();
 	}
 	
-	public void timedOut() {
+	public void testCoord() {
 		
 	}
 	
-	public int getMedianData() {
-		return 4;
+	public void timedOut() {
+		synchronized(lock){
+			distance = getFilteredData();
+		}
 	}
 	
 	public void updateReadValues(double d) {
 
 	}
 	
-	public void focusOnPoint(double latchedX, double latchedY) {
+	/**
+	 * Scans an array of values at a range and update an array of navigation options
+	 *  
+	 * @param range - The max distance at which to detect an object.
+	 */
+	public void scan(int range) {
 		
 	}
+	
+	public boolean flagObstruction() {
+		return true;
+	}
+	
+	//getFilteredData will return an int after filtering out 255 values
+	private int getFilteredData() {
+		filter = true;
+		int filterControl = 0;
+			
+			while(filter) {
+				
+				// do a ping
+				us.ping();
+				// wait for the ping to complete
+				try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}
+	
+				distance = us.getDistance();
+				
+				// implemented a filter to filter out 255 values
+				if(distance == 255 && (filterControl < FILTER_OUT) ) { 
+					filterControl++; 
+				}
+				else {
+					filter = false;
+				}
+			
+			}	
+		return filterWall(distance + SEN_TO_CENTER);
+	}
+	
+	//method to test and filter out wall readings and filtering out found blocks
+	private int filterWall(int reading) {
+		Odometer.getPosition(pos);
+		double x = pos[0];
+		double y = pos[1];
+		double theta = pos[2];
 		
+		//find the x and y coordinate at distance being read
+		double readX = x + reading*Math.cos(Math.toRadians(theta));
+		double readY = y + reading*Math.sin(Math.toRadians(theta));
+		//checking if coordinate is a wall value
+		if(readY < WALL_ERROR || readY > 240 - WALL_ERROR || readX < WALL_ERROR || readX > 240 - WALL_ERROR) { 
+			reading = 200; 
+		}
+		//checking if coordinate is a block found ???
+
+		return reading;
+	}
 }
