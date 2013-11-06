@@ -10,6 +10,7 @@ import java.lang.Math;
  * @since
  *
  */
+
 public class Coordinates {
 	//private final int SCOPE_SIZE = 5;
 	//this will take A LOT of fine tuning
@@ -33,7 +34,9 @@ public class Coordinates {
 		this.scannedAtPositionY = y;
 		this.xs = radii;
 		this.ys = thetas;
+		
 		convertToXY();
+		
 		this.slopes = generateSlopes();	
 		this.leftLatchedIndex = findLeftIndex();
 		this.rightLatchedIndex = findRightIndex();
@@ -50,8 +53,8 @@ public class Coordinates {
 			curRadians = Math.toRadians(ys[i]);
 			//need to add odo.getX() and odo.getY() HERE!!!!
 			//also take into account robots odo.getTheta() in constructor!!!!
-			xs[i] = scannedAtPositionX + curDist * Math.cos(curRadians);
-			ys[i] = scannedAtPositionY + curDist * Math.sin(curRadians);
+			xs[i] = scannedAtPositionX + curDist * Math.sin(curRadians);
+			ys[i] = scannedAtPositionY + curDist * Math.cos(curRadians);
 		}
 	}
 	
@@ -121,7 +124,30 @@ public class Coordinates {
 	}
 	
 	//helper to find fourth vertex
-
+	
+	// Method to find the slope of best fit for the set of values
+	// courtesy of http://hotmath.com/hotmath_help/topics/line-of-best-fit.html
+	private double slopeLineOfBestFit(double[] xValues, double[] yValues){
+		double m = 0;
+		double sumX = 0;
+		double sumY = 0;
+		double sumXY = 0;
+		double sumXX = 0;
+		double pointCount = xValues.length;
+		
+		for(double d: xValues){sumX += d;}
+		for(double d: yValues){sumY += d;}
+		for(int i=0; i < pointCount; i++){
+			sumXY += (xValues[i] * yValues[i]);
+		}
+		for(int i=0; i < pointCount; i++){
+			sumXX += (xValues[i] * xValues[i]);
+		}
+		
+		m = (sumXY - (sumX * sumY) / pointCount) / (sumXX - (sumX * sumX) / pointCount);
+		
+		return m;
+	}
 	
 	//helper to return a distance between two points
 	private double longSide(double x1, double y1, double x2, double y2) {

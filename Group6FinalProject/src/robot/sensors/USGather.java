@@ -55,7 +55,7 @@ public class USGather implements TimerListener {
 	/**
 	 * Scans an array of values at a range and update an array of navigation options
 	 *  
-	 * @param range - The max distance at which to detect and object.
+	 * @param range - The max distance at which to detect an object.
 	 */
 	public void scan(int range) {
 		
