@@ -2,13 +2,19 @@ package robot.base;
 import robot.navigation.Odometer;
 import lejos.nxt.LCD;
 
+/**
+ * The display for the brick. Relays general information back to the user via the brick LCD display.
+ * 
+ * @author Michael
+ * @version 1.0.0
+ * @since
+ */
 public class LCDInfo extends Thread {
 	private static final long DISPLAY_PERIOD = 250;
-	private Odometer odometer;
 	
 	// constructor
-	public LCDInfo(Odometer odometer) {
-		this.odometer = odometer;
+	public LCDInfo() {
+		this.start();
 	}
 
 	// run method (required for Thread)
@@ -28,7 +34,7 @@ public class LCDInfo extends Thread {
 			LCD.drawString("T:              ", 0, 2);
 
 			// get the odometry information
-			odometer.getPosition(position, new boolean[] { true, true, true });
+			Odometer.getPosition(position);
 
 			// display odometry information
 			for (int i = 0; i < 3; i++) {

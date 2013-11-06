@@ -1,154 +1,118 @@
 package robot.navigation;
-import lejos.nxt.Motor;
+import lejos.util.Timer;
+import lejos.util.TimerListener;
 
-public class Odometer extends Thread {
-	// robot position
+/**
+ * Keeps up-to-date information about the location and heading of the robot.
+ * 
+ * @author Andreas
+ * @version 2.0.0
+ * @since 2013-11-03
+ */
+public class Odometer implements TimerListener {
+	
+	public static final int DEFAULT_PERIOD = 20;
+	
+	private TwoWheeledRobot robo;
+	private Navigation nav;
+	private OdometryCorrection corrector;
+	
+	// position data
 	private static double x, y, theta;
-	//wheel radius in cm
-	private double wheelRadius = 2.125;
-	//distance from robot center to wheel center in cm
-	private double wheelBase = 15.2;
-	//initializing needed tacho values
-	private int tachoL, tachoR, changeInTachoL, changeInTachoR;
-	private int lastTachoL = 0;
-	private int lastTachoR = 0;
-	//initializing displacement value
-	private double changeInDisplacement = 0.0; ////// or set to read tacho value?????
-	private double changeInTheta = 90.0 * (Math.PI / 180);
-
-	// odometer update period, in ms
-	private static final long ODOMETER_PERIOD = 25;
+	private double [] oldDH, dDH;
 
 	// lock object for mutual exclusion
 	private static Object lock;
 
-	// default constructor
-	public Odometer() {
+	/**
+	 * Odometer constructor. Allows for the keeping of up-to-date information about the robot's current postion and heading
+	 * 
+	 * @param leftMotor - The motor for the left wheel
+	 * @param rightMotor - The motor for the right wheel
+	 * @param corrector - The Odometry Correction being used
+	 */
+	public Odometer(TwoWheeledRobot robo, OdometryCorrection corrector) {
 		x = 0.0;
 		y = 0.0;
 		
 		theta = Math.PI / 180;
 		lock = new Object();
+		
+		this.robo = robo;
+		this.nav = new Navigation(robo);
+		this.corrector = corrector;
+				
+		Timer timer = new Timer(DEFAULT_PERIOD, this);
+		timer.start();
 	}
 
-	// run method (required for Thread)
-	public void run() {
-		long updateStart, updateEnd;
-
-		while (true) {
-			updateStart = System.currentTimeMillis();
-			// put (some of) your odometer code here
+	@Override
+	public void timedOut() {
+		robo.getDisplacementAndHeading(dDH);
+		dDH[0] -= oldDH[0];
+		dDH[1] -= oldDH[1];
+		
+		// update the position in a critical region
+		synchronized (lock) {
+			theta += dDH[1];
+			theta = fixDegAngle(theta);
 			
-			//update tachos
-			updateTacho();
+			x += dDH[0] * Math.sin(Math.toRadians(theta));
+			y += dDH[0] * Math.cos(Math.toRadians(theta));
 			
-			synchronized (lock) {
-				// don't use the variables x, y, or theta anywhere but here!
-				
-				//chaning theta back to radians for calculation
-				theta = Math.toRadians(theta);
-				
-				//calculate the change in theta
-				calculateChangeInTheta();
-				
-				//finding new x and y coordinates
-				calculateChangeInDisplacement();
-				x = x + changeInDisplacement * Math.cos(theta + changeInTheta/2);
-				y = y + changeInDisplacement * Math.sin(theta + changeInTheta/2);
-				
-				//calculating the new theta
-				theta = theta - changeInTheta;
-				//changing to degrees for display
-				theta = Math.toDegrees(theta);
-			}
-
-			// this ensures that the odometer only runs once every period
-			updateEnd = System.currentTimeMillis();
-			if (updateEnd - updateStart < ODOMETER_PERIOD) {
-				try {
-					Thread.sleep(ODOMETER_PERIOD - (updateEnd - updateStart));
-				} catch (InterruptedException e) {
-					// there is nothing to be done here because it is not
-					// expected that the odometer will be interrupted by
-					// another thread
-				}
-			}
+			// Determines if the robot is moving straight. If so, attempt to do odometry correction
+			// note* only updates if robot has recently crossed a gridline.
+			double[] data = new double[]{x,y,theta};
+			double lSpeed = robo.getLeftWheelSpeed();
+			double rSpeed = robo.getRightWheelSpeed();
+			if(lSpeed == rSpeed)
+				corrector.update(data, Math.abs(lSpeed));
+			x = data[0];
+			y = data[1];
+			theta = data[2];
 		}
-	}
-	
-	//using formula to find change in theta
-	public void calculateChangeInTheta() {
-		changeInTheta = (changeInTachoL*wheelRadius - changeInTachoR*wheelRadius)/wheelBase;
-		changeInTheta = changeInTheta * (Math.PI / 180);
-	}
-	
-	//using formula to find change in displacement
-	public void calculateChangeInDisplacement() {
-		changeInDisplacement = (changeInTachoL*wheelRadius + changeInTachoR*wheelRadius)/2;
-		changeInDisplacement = changeInDisplacement * (Math.PI / 180);
-	}
-	
-	//update the Tacho value and find changeInTacho
-	public void updateTacho() {
 		
-		//reading new tacho values
-		tachoL = Motor.A.getTachoCount();
-		tachoR = Motor.B.getTachoCount();
-		
-		//finding difference between old and new tacho readings
-		changeInTachoL = tachoL - lastTachoL;
-		changeInTachoR = tachoR - lastTachoR;
-		
-		//reseting lastTacho values for next iteration
-		lastTachoL = tachoL;
-		lastTachoR = tachoR;
-		
+		oldDH[0] += dDH[0];
+		oldDH[1] += dDH[1];
 	}
 
-	// accessors
-	public void getPosition(double[] position, boolean[] update) {
+	// Getters 
+	/**
+	 * Updates an array of the position and heading of the robot with the up-to-date information.
+	 * Updates the parameter.
+	 * @param position - Array of position and heading of the robot x:0 y:1 t:2
+	 */
+	public static void getPosition(double[] position) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
-			if (update[0])
-				position[0] = x;
-			if (update[1])
-				position[1] = y;
-			if (update[2])
-				position[2] = theta;
+			position[0] = x;
+			position[1] = y;
+			position[2] = theta;
 		}
 	}
-
-	public static double getX() {
-		double result;
-
-		synchronized (lock) {
-			result = x;
-		}
-
-		return result;
+	/**
+	 * Returns the TwoWheeledRobot class used by the Odometer and Navigation classes
+	 * @return TwoWheeledRobot robo
+	 */
+	public TwoWheeledRobot getTwoWheeledRobot() {
+		return robo;
 	}
-
-	public static double getY() {
-		double result;
-
-		synchronized (lock) {
-			result = y;
-		}
-
-		return result;
+	/**
+	 * Returns the navigation class used by the Odometer
+	 * @return Navigation nav
+	 */
+	public Navigation getNavigator() {
+		return this.nav;
 	}
-
-	public static double getTheta() {
-		double result;
-
-		synchronized (lock) {
-			result = theta;
-		}
-
-		return result;
-	}
-
-	// mutators
+	
+	// Setters
+	/**
+	 * Updates the position and heading of the robot with the values contained in the 'position' parameter.
+	 * Only updates the value if the corresponding index in 'update' is true.
+	 * 
+	 * @param position - values containing the updated position and heading x:0 y:1 t:2
+	 * @param update - values of whether or not to update the respective value x:0 y:1 t:2
+	 */
 	public void setPosition(double[] position, boolean[] update) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
@@ -161,21 +125,12 @@ public class Odometer extends Thread {
 		}
 	}
 
-	public void setX(double x) {
-		synchronized (lock) {
-			this.x = x;
-		}
-	}
-
-	public void setY(double y) {
-		synchronized (lock) {
-			this.y = y;
-		}
-	}
-
-	public void setTheta(double theta) {
-		synchronized (lock) {
-			this.theta = theta;
-		}
+	
+	// static 'helper' methods
+	private double fixDegAngle(double angle) {		
+		if (angle < 0.0)
+			angle = 360.0 + (angle % 360.0);
+		
+		return angle % 360.0;
 	}
 }
