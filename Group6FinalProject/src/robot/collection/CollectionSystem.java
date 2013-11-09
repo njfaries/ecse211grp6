@@ -8,7 +8,7 @@ import lejos.nxt.NXTRegulatedMotor;
  * Also deals with releasing the stack after the cage is full.
  * 
  * @author Nathaniel
- * @version 1.0.0
+ * @version 1.1.0
  * @since
  */
 public class CollectionSystem extends Thread {
@@ -102,5 +102,9 @@ public class CollectionSystem extends Thread {
 	 */
 	public boolean isDone(){
 		return done;
+	}
+	
+	public static void liftCage(){
+		cageMotor.rotate(-elevate);
 	}
 }
