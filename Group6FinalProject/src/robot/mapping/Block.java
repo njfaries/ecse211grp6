@@ -113,7 +113,7 @@ public class Block {
 	 */
 	public double[] getNewWaypoint(double startX, double startY, double wpX, double wpY){
 		double newLineSlope =  -(startX - wpX) / (startY - wpY);
-		double lineAngle = Math.atan2(newLineSlope,1);
+		double lineAngle = 90 - Math.atan2(newLineSlope,1);
 		
 		return getExteriorPoint(lineAngle, blockRadius, wpX, wpY);
 	}
