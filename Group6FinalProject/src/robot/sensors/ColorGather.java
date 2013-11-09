@@ -25,8 +25,8 @@ public class ColorGather implements TimerListener {
 	/**
 	 * In order to gather color information. The ColorGather needs to have access to the three color sensors
 	 * 
-	 * @param csFront - The front o
-	 * @param csBack
+	 * @param csLeft - The left o
+	 * @param csRight
 	 * @param csBlockReader
 	 */
 	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader) {
@@ -81,7 +81,7 @@ public class ColorGather implements TimerListener {
 	/**
 	 * Determines if a current sensor is currently over a line. The input parameter determines which sensor is checked.
 	 * 
-	 * @param sensor front:0 back:1
+	 * @param sensor left:0 right:1
 	 * @return boolean onLine
 	 */
 	public boolean isOnLine(int sensor) {
