@@ -113,7 +113,7 @@ public class Odometer implements TimerListener {
 	 * @param position - values containing the updated position and heading x:0 y:1 t:2
 	 * @param update - values of whether or not to update the respective value x:0 y:1 t:2
 	 */
-	public void setPosition(double[] position, boolean[] update) {
+	public static void setPosition(double[] position, boolean[] update) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
 			if (update[0])
