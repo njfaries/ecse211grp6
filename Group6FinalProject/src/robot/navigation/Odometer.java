@@ -14,12 +14,11 @@ public class Odometer implements TimerListener {
 	public static final int DEFAULT_PERIOD = 20;
 	
 	private TwoWheeledRobot robo;
-	private Navigation nav;
-	private OdometryCorrection corrector;
+	//private OdometryCorrection corrector;
 	
 	// position data
 	private static double x, y, theta;
-	private double [] oldDH, dDH;
+	private double[] oldDH = new double[2], dDH = new double[2];
 
 	// lock object for mutual exclusion
 	private static Object lock;
@@ -31,16 +30,15 @@ public class Odometer implements TimerListener {
 	 * @param rightMotor - The motor for the right wheel
 	 * @param corrector - The Odometry Correction being used
 	 */
-	public Odometer(TwoWheeledRobot robo, OdometryCorrection corrector) {
+	public Odometer(TwoWheeledRobot robo/*, OdometryCorrection corrector*/) {
 		x = 0.0;
 		y = 0.0;
 		
-		theta = Math.PI / 180;
+		theta = 0;
 		lock = new Object();
 		
 		this.robo = robo;
-		this.nav = new Navigation(robo);
-		this.corrector = corrector;
+		//this.corrector = corrector;
 				
 		Timer timer = new Timer(DEFAULT_PERIOD, this);
 		timer.start();
@@ -60,7 +58,7 @@ public class Odometer implements TimerListener {
 			x += dDH[0] * Math.sin(Math.toRadians(theta));
 			y += dDH[0] * Math.cos(Math.toRadians(theta));
 			
-			// Determines if the robot is moving straight. If so, attempt to do odometry correction
+/*			// Determines if the robot is moving straight. If so, attempt to do odometry correction
 			// note* only updates if robot has recently crossed a gridline.
 			double[] data = new double[]{x,y,theta};
 			double lSpeed = robo.getLeftWheelSpeed();
@@ -69,7 +67,7 @@ public class Odometer implements TimerListener {
 				corrector.update(data, Math.abs(lSpeed));
 			x = data[0];
 			y = data[1];
-			theta = data[2];
+			theta = data[2];*/
 		}
 		
 		oldDH[0] += dDH[0];
@@ -97,13 +95,6 @@ public class Odometer implements TimerListener {
 	public TwoWheeledRobot getTwoWheeledRobot() {
 		return robo;
 	}
-	/**
-	 * Returns the navigation class used by the Odometer
-	 * @return Navigation nav
-	 */
-	public Navigation getNavigator() {
-		return this.nav;
-	}
 	
 	// Setters
 	/**
@@ -113,7 +104,7 @@ public class Odometer implements TimerListener {
 	 * @param position - values containing the updated position and heading x:0 y:1 t:2
 	 * @param update - values of whether or not to update the respective value x:0 y:1 t:2
 	 */
-	public void setPosition(double[] position, boolean[] update) {
+	public static void setPosition(double[] position, boolean[] update) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
 			if (update[0])

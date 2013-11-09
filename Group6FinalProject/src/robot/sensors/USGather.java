@@ -116,6 +116,7 @@ public class USGather implements TimerListener {
 	 */
 	public double getDistance(){
 		synchronized(lock){
+			// Should return the distance from the center of the robot
 			return distance;
 		}
 	}

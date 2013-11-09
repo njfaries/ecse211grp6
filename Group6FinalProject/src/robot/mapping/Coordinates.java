@@ -51,9 +51,8 @@ public class Coordinates {
 		ArrayList<Double> yPoints = new ArrayList<Double>();
 		
 		// keeps taking in data until the robot stops turning (i.e. the scan completes)
-		while(!nav.isDone()){
-			try{Thread.sleep(100);}catch(InterruptedException e){}
-			
+		while(!nav.isDone()){			
+			try{Thread.sleep(10);}catch(InterruptedException e){}
 			Odometer.getPosition(pos);
 			double dist = us.getDistance();
 			double angle = pos[3];
@@ -97,7 +96,7 @@ public class Coordinates {
 		this.objectYs = Arrays.copyOfRange(ys, leftLatchedIndex, rightLatchedIndex + 1);
 		
 		// If there is not middle point (i.e. face on to the block), only take 1 LoBF
-		if(middleLatchedIndex == -1)
+		if(middleLatchedIndex == rightLatchedIndex)
 			this.bestFitSlope1 = slopeLineOfBestFit(objectXs, objectYs);
 		// Else if the block is at an angle (i.e. middle point detected), take 2 LoBF for each side
 		else

@@ -1,6 +1,5 @@
 package robot.mapping;
 
-import java.awt.geom.Ellipse2D;
 import java.awt.geom.Line2D;
 
 import robot.navigation.Odometer;
@@ -12,7 +11,6 @@ public class Block {
 	private boolean investigated;
 	private boolean isStyrofoam;
 	
-	private Ellipse2D.Double bounds;
 	double[] pos;
 	//private Coordinates objectCoordinates;
 	
@@ -47,15 +45,10 @@ public class Block {
 	public void setStyrofoam(){
 		this.isStyrofoam = true;
 	}
+	private void intersectedBy(Line2D.Double line){
 	
-	// Getters
-	/**
-	 * Returns the bounds of the block
-	 * @return Ellipse2D.Double - bounds
-	 */
-	public Ellipse2D.Double getBounds(){
-		return bounds;
 	}
+	// Getters
 	/**
 	 * Returns whether or not this block has been investigated
 	 * @return boolean - investigated
@@ -86,7 +79,7 @@ public class Block {
 		
 		double dX = centerX - pos[0];
 		double dY = centerY - pos[1];
-		double t = Math.atan2(dX, dY);
+		double t = Math.atan2(dY, dX);
 		
 		double newD = Math.sqrt(dX * dX + dY * dY) - 15;
 		
@@ -113,7 +106,7 @@ public class Block {
 	 */
 	public double[] getNewWaypoint(double startX, double startY, double wpX, double wpY){
 		double newLineSlope =  -(startX - wpX) / (startY - wpY);
-		double lineAngle = 90 - Math.atan2(newLineSlope,1);
+		double lineAngle = Math.atan2(newLineSlope,1);
 		
 		return getExteriorPoint(lineAngle, blockRadius, wpX, wpY);
 	}

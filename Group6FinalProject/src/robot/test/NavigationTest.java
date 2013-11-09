@@ -3,8 +3,9 @@ import robot.base.LCDInfo;
 import robot.base.RobotController.RobotMode;
 import robot.mapping.Map;
 import robot.navigation.*;
+import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
-import static org.mockito.Mockito.*;
+//import static org.mockito.Mockito.*;
 
 /**
  * Test class.
@@ -14,32 +15,29 @@ import static org.mockito.Mockito.*;
  * @version 1.1.0
  * @since 2013-11-09
  */
-public class NavigationTest {	
+public class NavigationTest extends Thread{	
 	
-	private static NXTRegulatedMotor leftMotor;
-	private static NXTRegulatedMotor rightMotor;
+	private NXTRegulatedMotor leftMotor = Motor.A;
+	private NXTRegulatedMotor rightMotor = Motor.B;
 	
-	private static TwoWheeledRobot robo;
-	private static Navigation nav;
+	private TwoWheeledRobot robo;
+	Navigation nav;
 	
 	 // This controls which points the navigation travels to
-	double[][] waypoints = new double[][]{{30,30},{30,60},{60,60}};
+	double[][] waypoints = new double[][]{{30,30}};
 	int wpIndex = 0;
 	
 	public static void main(String[] args) {
 		new NavigationTest();
 	}
 	public NavigationTest(){
-		new Map(RobotMode.STACKER);
-		
-		OdometryCorrection corrector = mock(OdometryCorrection.class);
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		
-		new Odometer(robo, corrector);
-		
+		new Odometer(robo);
 		nav = new Navigation(robo);
 		
 		new LCDInfo();
+		
+		this.start();
 	}
 	// Runs all the control code (calling localization, navigation, identification, etc)
 	public void run(){

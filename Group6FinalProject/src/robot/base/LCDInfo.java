@@ -11,7 +11,8 @@ import lejos.nxt.LCD;
  */
 public class LCDInfo extends Thread {
 	private static final long DISPLAY_PERIOD = 250;
-	
+	double[] position = new double[]{0,0,0};
+
 	// constructor
 	public LCDInfo() {
 		this.start();
@@ -20,8 +21,7 @@ public class LCDInfo extends Thread {
 	// run method (required for Thread)
 	public void run() {
 		long displayStart, displayEnd;
-		double[] position = new double[3];
-
+	
 		// clear the display once
 		LCD.clearDisplay();
 

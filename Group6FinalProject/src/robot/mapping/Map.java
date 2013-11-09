@@ -167,4 +167,7 @@ public class Map {
 			newWaypoint = false;
 		}
 	}
+	public static ArrayList<Block> getBlocks(){
+		return blocks;
+	}
 }
