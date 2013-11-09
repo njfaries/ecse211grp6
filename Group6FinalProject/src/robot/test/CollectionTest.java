@@ -1,12 +1,12 @@
 package robot.test;
 import robot.base.LCDInfo;
-import robot.base.RobotController.FunctionType;
+import robot.base.RobotController.RobotMode;
 import robot.collection.*;
+import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
-import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
 import static org.mockito.Mockito.*;
 
@@ -19,6 +19,7 @@ import static org.mockito.Mockito.*;
  */
 public class CollectionTest {
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
+	
 	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
 	private static NXTRegulatedMotor leftMotor;
@@ -31,8 +32,6 @@ public class CollectionTest {
 	private static ColorSensor csBlockReader;
 	
 	private static OdometryCorrection corrector;
-	private static Odometer odo;
-	private static Map map;
 	private static TwoWheeledRobot robo;
 	private static USGather us;
 	private static ColorGather cg;
@@ -48,17 +47,17 @@ public class CollectionTest {
 		new CollectionTest();
 	}
 	public CollectionTest(){
-
+		new Map(RobotMode.STACKER);
+		
 		usFront = mock(UltrasonicSensor.class);
 		when(usFront.getDistance()).thenReturn(getNextDist());
 		
 		us = new USGather(usFront);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
-		map = new Map();
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		odo = new Odometer(robo, corrector);
+		new Odometer(robo, corrector);
 		nav = new Navigation(robo);
 		
 		new LCDInfo();

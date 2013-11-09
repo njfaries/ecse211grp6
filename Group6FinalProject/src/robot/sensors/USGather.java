@@ -109,4 +109,14 @@ public class USGather implements TimerListener {
 
 		return reading;
 	}
+	
+	/**
+	 * Returns the current distance as recorded by the Ultrasonic sensor
+	 * @return double: distance
+	 */
+	public double getDistance(){
+		synchronized(lock){
+			return distance;
+		}
+	}
 }

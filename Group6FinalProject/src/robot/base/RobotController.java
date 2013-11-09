@@ -1,8 +1,9 @@
 package robot.base;
 import robot.collection.*;
+import robot.mapping.Coordinates;
+import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
-
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.UltrasonicSensor;
@@ -18,6 +19,7 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class RobotController extends Thread{
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
+	public enum RobotMode {STACKER, GARBAGE};
 	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
 	private NXTRegulatedMotor leftMotor;
@@ -42,6 +44,7 @@ public class RobotController extends Thread{
 	private ColorGather cg;
 	
 	private FunctionType function = FunctionType.IDLE;
+	private RobotMode mode = null;
 	
 	public static void main(String[] args) {
 		new RobotController();
@@ -51,7 +54,7 @@ public class RobotController extends Thread{
 	 * searching and collection.
 	 */
 	public RobotController(){
-		new Map();
+		new Map(mode);
 		new LCDInfo();
 		
 		us = new USGather(usFront);
@@ -73,7 +76,7 @@ public class RobotController extends Thread{
 			if(function == FunctionType.LOCALIZE)
 				localize();
 			else if(function == FunctionType.SEARCH)
-				search();
+				search(0, 90);
 			else if(function == FunctionType.NAVIGATE)
 				navigate();
 			else if(function == FunctionType.IDENTIFY)
@@ -101,7 +104,19 @@ public class RobotController extends Thread{
 		
 	}
 	// Search method (performs scans)
-	private void search(){
+	private void search(double fromAngle, double toAngle){
+		 nav.turnTo(fromAngle, 0);
+		 while(!nav.isDone()){
+		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
+		 }
+		 nav.turnTo(toAngle, 0);
+		 
+		 Coordinates.scan(nav, us);
+
+		 while(Coordinates.scanParsed()){
+			 	try{Thread.sleep(400);} catch(InterruptedException e){ }
+			 }
+		 
 		if(Map.hasNewWaypoint()){
 			double[] wp = new double[]{0,0};
 			Map.getWaypoint(wp);
@@ -129,6 +144,8 @@ public class RobotController extends Thread{
 		while(!collection.isDone()){
 			try{Thread.sleep(500);} catch(InterruptedException e){ }
 		}
+		
+		function = FunctionType.SEARCH;
 	}
 	// Releases the entire stack (only done at the end of the match)
 	private void release(){
