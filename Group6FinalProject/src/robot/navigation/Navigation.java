@@ -12,8 +12,8 @@ import lejos.util.TimerListener;
  */
 public class Navigation implements TimerListener {
 	private final double FORWARD_SPEED = 10;
-	private final double ROTATION_SPEED = 20;
-	private final double ANGLE_ERROR_THRESH = 1;
+	private final double ROTATION_SPEED = 30;
+	private final double ANGLE_ERROR_THRESH = 2;
 	private final double DIST_ERROR_THRESH = 1;
 	
 	private TwoWheeledRobot robo;
@@ -59,8 +59,10 @@ public class Navigation implements TimerListener {
 		// Checks if rotation is necessary
 		if(Math.abs(dT) > ANGLE_ERROR_THRESH)
 			turning = true;
-		else
+		else{
 			turning = false;
+			turnDirection = 0;
+		}
 		// Checks if traveling is necessary
 		if(dX > DIST_ERROR_THRESH || dY > DIST_ERROR_THRESH)
 			traveling = true;
@@ -105,7 +107,7 @@ public class Navigation implements TimerListener {
 	}
 	// Calculate an angle by observing the distances in X and Y needed to be travelled by
 	private double getAngle(double dX, double dY){
-		double angle = 90 - Math.atan2(dX, dY);
+		double angle = 90 - Math.toDegrees(Math.atan2(dY, dX));
 		if(angle < 0)
 			angle += 360;
 		else if(angle >= 360)
@@ -164,6 +166,19 @@ public class Navigation implements TimerListener {
 	 */
 	public void cont(){
 		this.travelTo(destinationX, destinationY);
+	}
+	
+	/**
+	 * method used in collection to move forward after the claw has been opened
+	 * @param dist - the distance to move forward
+	 * @return void
+	 */
+	public void moveStraight(double dist) {
+		double[] pos = new double[3];
+		Odometer.getPosition(pos);
+		double x = pos[0] + dist * Math.sin(pos[2]);
+		double y = pos[1] + dist * Math.cos(pos[2]);
+		travelTo(x,y);
 	}
 	
 	/**
