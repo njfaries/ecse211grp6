@@ -1,4 +1,7 @@
 robot.base
 robot.collection
+robot.localization
+robot.mapping
 robot.navigation
 robot.sensors
+robot.test

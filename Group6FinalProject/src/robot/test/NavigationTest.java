@@ -1,11 +1,16 @@
 package robot.test;
 import robot.base.LCDInfo;
 import robot.base.RobotController.RobotMode;
+import robot.mapping.Coordinates;
 import robot.mapping.Map;
 import robot.navigation.*;
+import robot.sensors.USGather;
+import robot.test.ScanningTest.FunctionType;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 //import static org.mockito.Mockito.*;
+import lejos.nxt.SensorPort;
+import lejos.nxt.UltrasonicSensor;
 
 /**
  * Test class.
@@ -51,7 +56,8 @@ public class NavigationTest extends Thread{
 	}
 	// Handles navigating to a point (allows the scanner to continue in case an unexpected obstacle appears (i.e. the other player)
 	private void navigate(){
-		nav.travelTo(waypoints[wpIndex][0], waypoints[wpIndex][1]);
+		//nav.travelTo(waypoints[wpIndex][0], waypoints[wpIndex][1]);
+		nav.turnTo(45, 0);
 		
 		while(!nav.isDone()){
 			try{ Thread.sleep(200); }

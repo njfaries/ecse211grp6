@@ -1,4 +1,5 @@
 package robot.test;
+import robot.base.LCDInfo;
 import robot.base.RobotController.RobotMode;
 import robot.collection.*;
 import robot.mapping.Coordinates;
@@ -7,6 +8,7 @@ import robot.navigation.*;
 import robot.sensors.*;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
+import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
 
 /**
@@ -26,7 +28,7 @@ public class ScanningTest extends Thread{
 	private NXTRegulatedMotor rightMotor = Motor.B;
 	private NXTRegulatedMotor cageMotor = Motor.C;
 	
-	private UltrasonicSensor usFront;
+	private UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
 		
 	private Navigation nav;
 	private TwoWheeledRobot robo;
@@ -34,7 +36,7 @@ public class ScanningTest extends Thread{
 	private USGather us;
 	
 	private FunctionType function = FunctionType.SEARCH;
-	private RobotMode mode = null;
+	private RobotMode mode = RobotMode.STACKER;
 	
 	public static void main(String[] args) {
 		new ScanningTest();
@@ -55,6 +57,8 @@ public class ScanningTest extends Thread{
 		nav = new Navigation(robo);
 		new Odometer(robo);
 		
+		//new LCDInfo();
+		
 		this.start();
 	}
 	
@@ -62,7 +66,7 @@ public class ScanningTest extends Thread{
 	public void run(){
 		while(true){
 			if(function == FunctionType.SEARCH)
-				search(0,90);
+				search(315,45);
 			
 			try{ Thread.sleep(50); }
 			catch(InterruptedException e){ }
@@ -71,19 +75,23 @@ public class ScanningTest extends Thread{
 	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle){
 		nav.turnTo(fromAngle, 0);
-		
+
 		while(!nav.isDone()){
 			try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}
 		
-		nav.turnTo(toAngle, 0);
+		nav.turnTo(toAngle, 1);
 		 
+/*		while(!nav.isDone()){
+			try{Thread.sleep(400);} catch(InterruptedException e){ }
+		}*/
+		
 		Coordinates.scan(nav, us);
 
 		while(!Coordinates.scanParsed()){
 		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}
-		 
+
 		function = FunctionType.IDLE;
 	}
 	

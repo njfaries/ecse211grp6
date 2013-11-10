@@ -27,6 +27,7 @@ public class Navigation implements TimerListener {
 	private boolean traveling = false;
 	private boolean turning = false;
 	
+	private Object lock = new Object();
 	
 	/**
 	 * Requires the odometer as an input along with the two motors for each wheel.
@@ -126,9 +127,12 @@ public class Navigation implements TimerListener {
 		destinationX = x;
 		destinationY = y;
 		destinationT = -1;
+		turnDirection = 0;
 		
 		traveling = true;
-		done = false;
+		synchronized(lock){
+			done = false;
+		}
 	}
 		
 	/**
@@ -137,13 +141,16 @@ public class Navigation implements TimerListener {
 	 * @param direction - The direction to turn 0:don't care; 1:clockwise; 2:counter clockwise
 	 */
 	public void turnTo(double theta, int direction) {
-		destinationX = -1;
-		destinationY = -1;
+		Odometer.getPosition(pos);
+		destinationX = pos[0];
+		destinationY = pos[1];
 		destinationT = theta;
 		turnDirection = direction;
 		
 		turning = true;
-		done = false;
+		synchronized(lock){
+			done = false;
+		}
 	}
 	
 	/**
@@ -186,6 +193,8 @@ public class Navigation implements TimerListener {
 	 * @return boolean: done
 	 */
 	public boolean isDone(){
-		return done;
+		synchronized(lock){
+			return done;
+		}
 	}
 }

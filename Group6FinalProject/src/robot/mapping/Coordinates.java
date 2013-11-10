@@ -3,6 +3,8 @@ import java.lang.Math;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import lejos.nxt.LCD;
+import robot.base.Status;
 import robot.navigation.Navigation;
 import robot.navigation.Odometer;
 import robot.sensors.USGather;
@@ -22,12 +24,12 @@ public class Coordinates {
 	//this will take A LOT of fine tuning
 
 	//private final double LATCH_MIDDLE_SLOPE_THRESH = 0.3;
-	private final double LATCH_SLOPE_THRESHOLD = 0.5;
+	private final double LATCH_SLOPE_THRESHOLD = 5;
 	private static boolean scanParsed = true;
 	
 	private double[] xs, ys, slopes;
 	private double[] objectXs, objectYs;
-	private int leftLatchedIndex, rightLatchedIndex, middleLatchedIndex;
+	private int leftLatchedIndex, rightLatchedIndex/*, middleLatchedIndex*/;
 
 	private double bestFitSlope1, bestFitSlope2;
 	private double[] lineCenters = new double[4];
@@ -51,21 +53,22 @@ public class Coordinates {
 		ArrayList<Double> yPoints = new ArrayList<Double>();
 		
 		// keeps taking in data until the robot stops turning (i.e. the scan completes)
-		while(!nav.isDone()){			
-			try{Thread.sleep(10);}catch(InterruptedException e){}
+		while(!nav.isDone()){	
+			Status.setStatus("Scanning");
 			Odometer.getPosition(pos);
 			double dist = us.getDistance();
-			double angle = pos[3];
+			double angle = pos[2];
 			
 			// Convert relative (r,t) to absolute (x,y)
-			double xVal = pos[0] + dist * Math.sin(angle);
-			double yVal = pos[1] + dist * Math.cos(angle);
-			
-			// Filters out any points outside the map rangle
+			double xVal = pos[0] + dist * Math.cos(Math.toRadians(angle));
+			double yVal = pos[1] + dist * Math.sin(Math.toRadians(angle));
+						
+			// Filters out any points outside the map angle
 			if(xVal > 10 && xVal < Map.xMax - 10 && yVal > 10 && yVal < Map.yMax - 10){
 				xPoints.add(xVal);
 				yPoints.add(yVal);
 			}
+			try { Thread.sleep(20); } catch (InterruptedException e) {}
 		}
 		
 		// Convert the arrayLists to arrays
@@ -76,7 +79,7 @@ public class Coordinates {
 			xArray[i] = xPoints.get(i);
 			yArray[i] = yPoints.get(i);
 		}
-		
+		Status.setStatus("" + xArray.length);
 		// Creates a new set of coordinates with the scan data
 		new Coordinates(xArray, yArray);
 	}
@@ -88,11 +91,44 @@ public class Coordinates {
 		this.xs = xPoints;
 		this.ys = yPoints;
 		
+		double[] pos = new double[3];
+		Odometer.getPosition(pos);
+		for(int i=0; i<xs.length; i++){
+			LCD.setPixel((int)(xs[i] - pos[0])/4 + 64, (int)(ys[i] - pos[1])/4 + 32, 1);
+		}
+				
 		this.slopes = generateSlopes();	
 
 		latchPoints();
+		if(leftLatchedIndex < 0){
+			scanParsed = true;
+			LCD.drawString("no left",0,0);
+			return;
+		}
+		if(rightLatchedIndex < 0){
+			scanParsed = true;
+			LCD.drawString("no right",0,1);
+			return;
+		}
+/*		LCD.drawString((int)xs[leftLatchedIndex] + "|" + (int)ys[leftLatchedIndex],0,1);
+		LCD.drawString((int)xs[rightLatchedIndex] + "|" + (int)ys[rightLatchedIndex],0,2);*/
 		
-		this.objectXs = Arrays.copyOfRange(xs, leftLatchedIndex, rightLatchedIndex + 1);
+		LCD.setPixel((int)(xs[leftLatchedIndex] - pos[0])/4 + 64, (int)(ys[leftLatchedIndex] - pos[1])/4 + 32, 1);
+		LCD.setPixel((int)(xs[rightLatchedIndex] - pos[0])/4 + 64, (int)(ys[rightLatchedIndex] - pos[1])/4 + 32, 1);
+		
+		Status.setStatus((int)xs[leftLatchedIndex] + " " + (int)ys[leftLatchedIndex] + " " + (int)xs[rightLatchedIndex] + " " + (int)ys[rightLatchedIndex]);
+		
+/*		// Parse through the rest of the scan for another object
+		if(rightLatchedIndex + 1 < objectXs.length){
+			double[] newXs = Arrays.copyOfRange(xs, rightLatchedIndex + 1, xs.length);
+			double[] newYs = Arrays.copyOfRange(xs, rightLatchedIndex + 1, ys.length);
+			new Coordinates(newXs, newYs);
+			return;
+		}
+		
+		scanParsed = true;*/
+		
+/*		this.objectXs = Arrays.copyOfRange(xs, leftLatchedIndex, rightLatchedIndex + 1);
 		this.objectYs = Arrays.copyOfRange(ys, leftLatchedIndex, rightLatchedIndex + 1);
 		
 		// If there is not middle point (i.e. face on to the block), only take 1 LoBF
@@ -133,7 +169,7 @@ public class Coordinates {
 			synchronized(lock){
 				scanParsed = true;
 			}
-		}
+		}*/
 	}
 	
 	//generate slopes from x and y coordinates
@@ -157,24 +193,29 @@ public class Coordinates {
 	private void latchPoints(){
 		leftLatchedIndex = -1;
 		rightLatchedIndex = -1;
-		middleLatchedIndex = -1;
 		
-		// Find the start of a seady slope
+		// Find the start of a steady slope
 		for(int i = 0; i < slopes.length - 1; i++) {
-			if(Math.abs(slopes[i+1] - slopes[i]) <= LATCH_SLOPE_THRESHOLD) {
+			if(Math.abs(slopes[i+1]/ slopes[i]) > LATCH_SLOPE_THRESHOLD && Math.abs(slopes[i+1]/ slopes[i]) < LATCH_SLOPE_THRESHOLD +1) {
 				leftLatchedIndex = i;
+				LCD.drawString(i + "|" + (int)xs[i] + "|" + (int)ys[i] + "|" +(int)slopes[i+1]*10 + "|" + (int)slopes[i]*10,0,0);
 				break;
 			}
 		}
+		if(leftLatchedIndex == -1)
+			return;
 		
 		// Find the end of the steady slope
-		for(int i = leftLatchedIndex; i < slopes.length - 1; i++) {
-			if(Math.abs(slopes[i+1] - slopes[i]) > LATCH_SLOPE_THRESHOLD) {
-				rightLatchedIndex = i + 1;
+		for(int i = leftLatchedIndex+1; i < slopes.length - 1; i++) {
+			if((Math.abs(slopes[i+1]/ slopes[i]) > LATCH_SLOPE_THRESHOLD + 1 || Math.abs(slopes[i+1]/ slopes[i]) < LATCH_SLOPE_THRESHOLD)) {
+				rightLatchedIndex = i;
+				LCD.drawString(i + "|" + (int)xs[i] + "|" + (int)ys[i] + "|" +(int)(slopes[i+1]*10) + "|" + (int)(slopes[i] * 10),0,1);
 				break;
 			}
 		}
-		// End of steady slope could either be the end or a corner
+		if(rightLatchedIndex == -1)
+			rightLatchedIndex = slopes.length;
+/*		// End of steady slope could either be the end or a corner
 		middleLatchedIndex = rightLatchedIndex;
 		
 		// Determine if there is a middle index to be found (determine if an opposite reciprocal slope appears)
@@ -201,7 +242,7 @@ public class Coordinates {
 					break;
 				}
 			}
-		}
+		}*/
 	}
 	
 	// Method to find the slope of best fit for the set of values
@@ -230,35 +271,22 @@ public class Coordinates {
 	
 	// Finds the middle point of each side of the object
 	private void findMiddlePoints(){
-		double sumX1 = 0, sumY1 = 0, sumX2 = 0, sumY2 = 0, sum1 = 0, sum2 = 0;
+		double sumX1 = 0, sumY1 = 0, sum1 = 0;
 		
 		for(int i = leftLatchedIndex; i < rightLatchedIndex; i++){
-			if(i <= middleLatchedIndex){
-				sumX1 += xs[i];
-				sumY1 += ys[i];
-				sum1++;
-			}
-			if(i >= middleLatchedIndex){
-				sumX2 += xs[i];
-				sumY2 += ys[i];
-				sum2++;
-			}
+			sumX1 += xs[i];
+			sumY1 += ys[i];
+			sum1++;
 		}
 		
 		lineCenters[0] = sumX1 / sum1;
 		lineCenters[1] = sumY1 / sum1;
-		lineCenters[2] = sumX2 / sum2;
-		lineCenters[3] = sumY2 / sum2;
 	}
 		
 	//method to generate boundary equations based on attributes initiated
 	private void generateBoundaryEquations() {
 		boundaryEquations[0] = bestFitSlope1;
 		boundaryEquations[1] = findYIntercept(boundaryEquations[0], lineCenters[0], lineCenters[1]);
-		// If not second side found, this will just be the inverse reciprocal of slope1
-		boundaryEquations[2] = bestFitSlope2; 
-		//middleX2 and middleY2 will be the point of the rightLatchedIndex of not second side is found
-		boundaryEquations[3] = findYIntercept(boundaryEquations[2], lineCenters[2], lineCenters[3]); 
 	}
 	
 	//helper to find y-intercept based on a slope and point

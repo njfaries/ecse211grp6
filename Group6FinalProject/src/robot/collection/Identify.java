@@ -1,3 +1,9 @@
+package robot.collection;
+
+import robot.navigation.Navigation;
+import robot.sensors.ColorGather;
+import robot.sensors.USGather;
+
 public class Identify {
 	//must lower collection motor cage must be lowered to use ultrasonic sensor
 	//also assumes the color sensor at a distance to check the color of the block 
@@ -15,7 +21,7 @@ public class Identify {
 	}
 	
 	public boolean needToCollectBlue() {
-		
+		// Maybe move forward towards the block
 		//if the block is blue, flag for collection by returning true
 		if (cg.isBlue() == true) {
 			 return true;

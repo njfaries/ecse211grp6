@@ -32,6 +32,7 @@ public class LCDInfo extends Thread {
 			LCD.drawString("X:              ", 0, 0);
 			LCD.drawString("Y:              ", 0, 1);
 			LCD.drawString("T:              ", 0, 2);
+			LCD.drawString("S:              ", 0, 3);
 
 			// get the odometry information
 			Odometer.getPosition(position);
@@ -40,7 +41,8 @@ public class LCDInfo extends Thread {
 			for (int i = 0; i < 3; i++) {
 				LCD.drawString(formattedDoubleToString(position[i], 2), 3, i);
 			}
-
+			LCD.drawString(Status.getStatus(), 3, 3);
+			
 			// throttle the OdometryDisplay
 			displayEnd = System.currentTimeMillis();
 			if (displayEnd - displayStart < DISPLAY_PERIOD) {
