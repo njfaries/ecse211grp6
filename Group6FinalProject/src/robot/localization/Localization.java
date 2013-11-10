@@ -62,7 +62,7 @@ public class Localization extends Thread {
 		}
 		while(true) {	//while still localizing, may put bool variable here later.
 			rotate(direction);
-			if (usGather.getDistance() < (WALL_DISTANCE - US_OFFSET)) {			//Once the rising edge is detected...
+			if (usGather.getDistance() < (WALL_DISTANCE - US_OFFSET)) {				//Once the rising edge is detected...
 				Motor.A.stop();														//stop the motors and get the theta value
 				Motor.B.stop();														//from the odometer
 				Odometer.getPosition(array); 										//Need to be able to get theta more easily...
@@ -129,6 +129,13 @@ public class Localization extends Thread {
 		}
 		return realAngle;
 	}
+	
+	/**
+	 * This method is responsible for calculating the x, y, and theta of the robot based on the light sensor
+	 * 
+	 * @param angles - the array holding the angles at which a line was detected.
+	 * @return array - the array holding the calculated x, y, and theta.
+	 */
 	
 	private double[] calculateLS(double[] angles) {
 		double x, y;

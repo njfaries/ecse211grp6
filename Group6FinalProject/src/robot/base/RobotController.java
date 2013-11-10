@@ -1,5 +1,6 @@
 package robot.base;
 import robot.collection.*;
+import robot.localization.Localization;
 import robot.mapping.Coordinates;
 import robot.mapping.Map;
 import robot.navigation.*;
@@ -7,14 +8,15 @@ import robot.sensors.*;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.UltrasonicSensor;
+import src.bluetooth.*;
 
 /**
  * Contains the main method for the robot.
  * Initiates classes and passes them the necessary motors, sensors, and various constants.
  * Controls and and delegates tasks to various subroutines.
  * 
- * @author Andreas
- * @version 1.1.0
+ * @author Andreas, Nathaniel
+ * @version 1.2.0
  * @since 2013-11-04
  */
 public class RobotController extends Thread{
@@ -46,6 +48,11 @@ public class RobotController extends Thread{
 	private USGather us;
 	private ColorGather cg;
 	
+	private Localization loc;
+	
+	private BluetoothConnection bt;
+	private Transmission transmission;
+	
 	private FunctionType function = FunctionType.IDLE;
 	private RobotMode mode = null;
 	
@@ -70,6 +77,8 @@ public class RobotController extends Thread{
 		odo = new Odometer(robo/*, corrector*/);
 		
 		collection = new CollectionSystem(clawMotor, nav);
+		
+		receive();
 		
 		this.start();
 	}
@@ -101,11 +110,15 @@ public class RobotController extends Thread{
 	}
 	// Receives instruction via bluetooth
 	private void receive(){
-		
+		bt = new BluetoothConnection();
+		transmission = bt.getTransmission();
+		mode = (transmission.role.equals(PlayerRole.BUILDER)) ? RobotMode.STACKER : RobotMode.GARBAGE;
 	}
 	// Initiates the localization of the robot
 	private void localize(){
-		
+		loc = new Localization(usFront, csBack, csBack, csBack, transmission.startingCorner, robo);
+		loc.localize();
+		function = FunctionType.SEARCH;	//Once finished localizing robot goes immediately to search mode.
 	}
 	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle, int direction){
@@ -148,6 +161,7 @@ public class RobotController extends Thread{
 		}
 		
 		// Run identification routine
+		//if block is styrofoam -> function = FunctionType.COLLECT
 	}
 	// Collects said block
 	private void collect(){
