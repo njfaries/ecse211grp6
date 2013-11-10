@@ -162,16 +162,16 @@ public class RobotController extends Thread{
                 while(!collection.isDone()){
                         try{Thread.sleep(500);} catch(InterruptedException e){ }
                 }
-				//if the block is blue collect it
-				if(id.needToCollectBlue()) {
-					function = FunctionType.COLLECT;
-				}
-				//else the robot has backed up and does a search
-				else {
-					//add the wooden block to map
-					map.getCurrentBlock.identify();
-					function = FunctionType.SEARCH;
-				}
+		//if the block is blue collect it
+		if(id.needToCollectBlue()) {
+			function = FunctionType.COLLECT;
+		}
+		//else the robot has backed up and does a search
+		else {
+			//add the wooden block to map
+			Map.getCurrentBlock().investigate();
+			function = FunctionType.SEARCH;
+		}
         }
         // Collects said block
         private void collect(){
