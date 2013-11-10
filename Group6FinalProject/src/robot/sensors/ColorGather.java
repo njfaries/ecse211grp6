@@ -1,6 +1,7 @@
 package robot.sensors;
 
 import lejos.nxt.ColorSensor;
+import lejos.nxt.ColorSensor.Color;
 import lejos.util.TimerListener;
 
 /**

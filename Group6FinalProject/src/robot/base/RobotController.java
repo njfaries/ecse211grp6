@@ -8,7 +8,6 @@ import robot.sensors.*;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.UltrasonicSensor;
-import src.bluetooth.*;
 
 /**
  * Contains the main method for the robot.
@@ -39,7 +38,6 @@ public class RobotController extends Thread{
 	
 	private CollectionSystem collection;
 	
-	private Odometer odo;
 	private OdometryCorrection corrector;
 	
 	private Navigation nav;
@@ -49,14 +47,16 @@ public class RobotController extends Thread{
 	private ColorGather cg;
 	
 	private Localization loc;
-	
-	private BluetoothConnection bt;
-	private Transmission transmission;
-	
+		
 	private FunctionType function = FunctionType.IDLE;
 	private RobotMode mode = null;
 	
 	private double[] pos = new double[3];
+	
+	/**
+	 * Main
+	 * @param args
+	 */
 	public static void main(String[] args) {
 		new RobotController();
 	}
@@ -74,7 +74,7 @@ public class RobotController extends Thread{
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation(robo);
 		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		odo = new Odometer(robo/*, corrector*/);
+		new Odometer(robo/*, corrector*/);
 		
 		collection = new CollectionSystem(clawMotor, nav);
 		
@@ -110,14 +110,11 @@ public class RobotController extends Thread{
 	}
 	// Receives instruction via bluetooth
 	private void receive(){
-		bt = new BluetoothConnection();
-		transmission = bt.getTransmission();
-		mode = (transmission.role.equals(PlayerRole.BUILDER)) ? RobotMode.STACKER : RobotMode.GARBAGE;
 	}
 	// Initiates the localization of the robot
 	private void localize(){
-		loc = new Localization(usFront, csBack, csBack, csBack, transmission.startingCorner, robo);
-		loc.localize();
+		//loc = new Localization(usFront, csBack, csBack, csBack, transmission.startingCorner, robo);
+		//loc.localize();
 		function = FunctionType.SEARCH;	//Once finished localizing robot goes immediately to search mode.
 	}
 	// Search method (performs scans)

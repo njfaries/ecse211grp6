@@ -175,4 +175,7 @@ public class Map {
 	public static ArrayList<Block> getBlocks(){
 		return blocks;
 	}
+	public static Block getCurrentBlock(){
+		return blocks.get(currentBlockIndex);
+	}
 }
