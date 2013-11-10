@@ -169,6 +169,19 @@ public class Navigation implements TimerListener {
 	}
 	
 	/**
+	 * method used in collection to move forward after the claw has been opened
+	 * @param dist - the distance to move forward
+	 * @return void
+	 */
+	public void moveStraight(double dist) {
+		double[] pos = new double[3];
+		Odometer.getPosition(pos);
+		double x = pos[0] + dist * Math.sin(pos[2]);
+		double y = pos[1] + dist * Math.cos(pos[2]);
+		travelTo(x,y);
+	}
+	
+	/**
 	 * Determines if the navigation is actually running (if true, implies it is not)
 	 * @return boolean: done
 	 */
