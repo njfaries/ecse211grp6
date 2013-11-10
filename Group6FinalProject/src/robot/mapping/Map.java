@@ -134,6 +134,11 @@ public class Map {
 	 * @param newCoords - New set of coordinates to add to the map
 	 */
 	public static void addBlock(Coordinates objectCoords){
+		Block newBlock = new Block(objectCoords);
+		for(int i=0; i < blocks.size(); i++){
+			if(blocks.get(i).pointInside(newBlock.getCenterX(), newBlock.getCenterY()))
+				blocks.get(i).merge(newBlock);
+		}
 		blocks.add(new Block(objectCoords));
 	}
 

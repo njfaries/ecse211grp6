@@ -5,10 +5,10 @@ import robot.collection.*;
 import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.UltrasonicSensor;
-import static org.mockito.Mockito.*;
 
 /**
  * Test class.
@@ -22,21 +22,20 @@ public class CollectionTest {
 	
 	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
-	private static NXTRegulatedMotor leftMotor;
-	private static NXTRegulatedMotor rightMotor;
-	private static NXTRegulatedMotor motor1;
+	private NXTRegulatedMotor leftMotor = Motor.A;
+	private NXTRegulatedMotor rightMotor = Motor.B;
+	private NXTRegulatedMotor clawMotor = Motor.C;
 	
-	private static UltrasonicSensor usFront;
-	private static ColorSensor csFront;
-	private static ColorSensor csBack;
-	private static ColorSensor csBlockReader;
+	private UltrasonicSensor usFront;
+	private ColorSensor csFront;
+	private ColorSensor csBack;
+	private ColorSensor csBlockReader;
 	
-	private static OdometryCorrection corrector;
-	private static TwoWheeledRobot robo;
-	private static USGather us;
-	private static ColorGather cg;
-	private static CollectionSystem collection;
-	private static Navigation nav;
+	private TwoWheeledRobot robo;
+	private USGather us;
+	private ColorGather cg;
+	private CollectionSystem collection;
+	private Navigation nav;
 	
 	private static FunctionType function = FunctionType.IDLE;
 	
@@ -49,16 +48,14 @@ public class CollectionTest {
 	public CollectionTest(){
 		new Map(RobotMode.STACKER);
 		
-		usFront = mock(UltrasonicSensor.class);
-		when(usFront.getDistance()).thenReturn(getNextDist());
-		
 		us = new USGather(usFront);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		new Odometer(robo, corrector);
+		new Odometer(robo);
 		nav = new Navigation(robo);
+		
+		collection = new CollectionSystem(clawMotor, nav);
 		
 		new LCDInfo();
 	}

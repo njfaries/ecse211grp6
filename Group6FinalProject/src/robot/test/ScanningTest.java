@@ -1,15 +1,13 @@
 package robot.test;
-import robot.base.LCDInfo;
 import robot.base.RobotController.RobotMode;
 import robot.collection.*;
 import robot.mapping.Coordinates;
 import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
-import lejos.nxt.ColorSensor;
 import lejos.nxt.UltrasonicSensor;
-import static org.mockito.Mockito.*;
 
 /**
  * Contains the main method for the robot.
@@ -24,8 +22,9 @@ public class ScanningTest extends Thread{
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
 	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
-	private NXTRegulatedMotor leftMotor;
-	private NXTRegulatedMotor rightMotor;
+	private NXTRegulatedMotor leftMotor = Motor.A;
+	private NXTRegulatedMotor rightMotor = Motor.B;
+	private NXTRegulatedMotor cageMotor = Motor.C;
 	
 	private UltrasonicSensor usFront;
 		
@@ -46,13 +45,15 @@ public class ScanningTest extends Thread{
 	 */
 	public ScanningTest(){
 		new Map(mode);
-		new LCDInfo();
+		
+		CollectionSystem collect = new CollectionSystem(cageMotor, nav);
+		collect.raiseCage();
 		
 		us = new USGather(usFront);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation(robo);
-		new Odometer(robo, mock(OdometryCorrection.class));
+		new Odometer(robo);
 		
 		this.start();
 	}
@@ -62,35 +63,28 @@ public class ScanningTest extends Thread{
 		while(true){
 			if(function == FunctionType.SEARCH)
 				search(0,90);
-			try{
-				Thread.sleep(50);
-			}
-			catch(InterruptedException e){
-				
-			}
+			
+			try{ Thread.sleep(50); }
+			catch(InterruptedException e){ }
 		}
 	}
 	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle){
-		 nav.turnTo(fromAngle, 0);
-		 while(!nav.isDone()){
-		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
-		 }
-		 nav.turnTo(toAngle, 0);
-		 
-		 Coordinates.scan(nav, us);
-
-		 while(Coordinates.scanParsed()){
-			 	try{Thread.sleep(400);} catch(InterruptedException e){ }
-			 }
-		 
-		if(Map.hasNewWaypoint()){
-			double[] wp = new double[]{0,0};
-			Map.getWaypoint(wp);
-			nav.travelTo(wp[0], wp[1]);
-			
-			function = FunctionType.IDLE;
+		nav.turnTo(fromAngle, 0);
+		
+		while(!nav.isDone()){
+			try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}
+		
+		nav.turnTo(toAngle, 0);
+		 
+		Coordinates.scan(nav, us);
+
+		while(!Coordinates.scanParsed()){
+		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
+		}
+		 
+		function = FunctionType.IDLE;
 	}
 	
 }

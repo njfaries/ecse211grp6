@@ -104,7 +104,20 @@ public class CollectionSystem extends Thread {
 		return done;
 	}
 	
-	public static void liftCage(){
+	/**
+	 * Lifts the cage (will be called on startup and after identification)
+	 */
+	public void raiseCage(){
+		done = false;
 		cageMotor.rotate(-elevate);
+		done = true;
+	}
+	/**
+	 * Lowers the cage (will be called before identification)
+	 */
+	public void lowerCage(){
+		done = false;
+		cageMotor.rotate(elevate);
+		done = true;
 	}
 }

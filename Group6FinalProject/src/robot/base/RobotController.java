@@ -18,9 +18,12 @@ import lejos.nxt.UltrasonicSensor;
  * @since 2013-11-04
  */
 public class RobotController extends Thread{
-	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
+	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE };
 	public enum RobotMode {STACKER, GARBAGE};
 	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
+	
+	private double scanStart = 0;
+	private int scanAngle = 90, scanDirection = 0;
 	
 	private NXTRegulatedMotor leftMotor;
 	private NXTRegulatedMotor rightMotor;
@@ -46,6 +49,7 @@ public class RobotController extends Thread{
 	private FunctionType function = FunctionType.IDLE;
 	private RobotMode mode = null;
 	
+	private double[] pos = new double[3];
 	public static void main(String[] args) {
 		new RobotController();
 	}
@@ -63,7 +67,7 @@ public class RobotController extends Thread{
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation(robo);
 		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		odo = new Odometer(robo, corrector);
+		odo = new Odometer(robo/*, corrector*/);
 		
 		collection = new CollectionSystem(clawMotor, nav);
 		
@@ -76,9 +80,9 @@ public class RobotController extends Thread{
 			if(function == FunctionType.LOCALIZE)
 				localize();
 			else if(function == FunctionType.SEARCH)
-				search(0, 90);
-			else if(function == FunctionType.NAVIGATE)
-				navigate();
+				search(scanStart, scanAngle, scanDirection);
+			else if(function == FunctionType.BLOCK_NAVIGATE)
+				navigateToBlock();
 			else if(function == FunctionType.IDENTIFY)
 				identify();
 			else if(function == FunctionType.COLLECT)
@@ -104,12 +108,12 @@ public class RobotController extends Thread{
 		
 	}
 	// Search method (performs scans)
-	private void search(double fromAngle, double toAngle){
-		 nav.turnTo(fromAngle, 0);
+	private void search(double fromAngle, double toAngle, int direction){
+		 nav.turnTo(fromAngle, direction);
 		 while(!nav.isDone()){
 		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
 		 }
-		 nav.turnTo(toAngle, 0);
+		 nav.turnTo(toAngle, direction);
 		 
 		 Coordinates.scan(nav, us);
 
@@ -122,20 +126,28 @@ public class RobotController extends Thread{
 			Map.getWaypoint(wp);
 			nav.travelTo(wp[0], wp[1]);
 			
-			function = FunctionType.NAVIGATE;
+			function = FunctionType.BLOCK_NAVIGATE;
 		}
 	}
 	// Handles navigating to a point (allows the scanner to continue in case an unexpected obstacle appears (i.e. the other player)
-	private void navigate(){
+	private void navigateToBlock(){
 		while(!nav.isDone()){
 			// Keep the ultrasonic sensor scanning to detect obstacles
 			// If an obstacle appears (probably the other player)
 			// nav.stop();
 		}
+		
+		function = FunctionType.IDENTIFY;
 	}
 	// Identifies a specific block
 	private void identify(){
+		collection.lowerCage();
 		
+		while(!collection.isDone()){
+			try{Thread.sleep(500);} catch(InterruptedException e){ }
+		}
+		
+		// Run identification routine
 	}
 	// Collects said block
 	private void collect(){
@@ -145,7 +157,16 @@ public class RobotController extends Thread{
 			try{Thread.sleep(500);} catch(InterruptedException e){ }
 		}
 		
+		Odometer.getPosition(pos);
+		scanStart = pos[2];
+		scanAngle = 359;
+		scanDirection = 1;
+		
 		function = FunctionType.SEARCH;
+	}
+	// Handles the navigation to the end
+	private void navigateToEnd(){
+		
 	}
 	// Releases the entire stack (only done at the end of the match)
 	private void release(){
@@ -154,6 +175,8 @@ public class RobotController extends Thread{
 		while(!collection.isDone()){
 			try{Thread.sleep(500);} catch(InterruptedException e){ }
 		}
+		
+		function = FunctionType.IDLE;
 	}
 	
 }

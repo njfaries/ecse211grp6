@@ -1,7 +1,9 @@
 package robot.mapping;
 
 import java.awt.geom.Line2D;
+import java.awt.geom.Rectangle2D;
 
+import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 public class Block {
@@ -11,6 +13,7 @@ public class Block {
 	private boolean investigated;
 	private boolean isStyrofoam;
 	
+	private Rectangle2D bounds;
 	double[] pos;
 	//private Coordinates objectCoordinates;
 	
@@ -26,7 +29,9 @@ public class Block {
 		centerX = center[0];
 		centerY = center[1];
 		
-		bounds = new Ellipse2D.Double(center[0] + 15, center[1] + 15, 30, 30);
+		LCD.setPixel((int)centerX, (int)centerY, 1);
+		
+		bounds = new Rectangle2D.Double(center[0] + 15, center[1] + 15, 30, 30);
 		
 		investigated = false;
 		isStyrofoam = false;
@@ -97,6 +102,18 @@ public class Block {
 		return path.intersects(bounds.getBounds());
 	}
 	/**
+	 * Determines if a point is inside the block (i.e. a point relates to this block)
+	 * @param x - x value to test
+	 * @param y - y value to test
+	 * @return boolean
+	 */
+	public boolean pointInside(double x, double y){
+		double dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y-centerY, 2));
+		if(dist <= 10)
+			return true;
+		return false;
+	}
+	/**
 	 * Gets new a new waypoint at the edge of 
 	 * @param startX - the x value to change
 	 * @param startY - the y value to change
@@ -138,6 +155,18 @@ public class Block {
 			newWayPoint = new double[]{newWpX2, newWpY2};
 		
 		return newWayPoint;
+	}
+	
+	public double getCenterX(){
+		return centerX;
+	}
+	public double getCenterY(){
+		return centerY;
+	}
+	
+	public void merge(Block block){
+		centerX = (this.getCenterX() + block.getCenterX()) / 2;
+		centerY = (this.getCenterY() + block.getCenterY()) / 2;
 	}
 	
 }
