@@ -1,3 +1,5 @@
+package robot.mapping;
+
 import java.util.ArrayList;
 import java.lang.Math;
 

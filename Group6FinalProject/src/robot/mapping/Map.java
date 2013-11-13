@@ -49,27 +49,7 @@ public class Map {
 			endZone.setLocation(30, 300);
 		}
 	}
-	
-	public boolean checkReadingWall(double readX, double readY) {
-		return false;
-	}
-	
-	public boolean checkNavWall(double posX, double posY) {
-		return false;
-	}
-	
-	public static void addNewObjectBoundary(double x1, double y1, double x2, double y2, double x3, double y3) {
 		
-	}
-	
-	public boolean checkNavObject(double posX, double posY) {
-		return false;
-	}
-	
-	public boolean checkReadingObject(double readX, double readY) {
-		return false;
-	}
-	
 	// Setters
 	/**
 	 * Sets the current block as having been checked. Also sets the block as being styrofoam or not
@@ -133,13 +113,8 @@ public class Map {
 	 * Adds a new set of coordinates following a scan that updates 
 	 * @param newCoords - New set of coordinates to add to the map
 	 */
-	public static void addBlock(Coordinates objectCoords){
-		Block newBlock = new Block(objectCoords);
-		for(int i=0; i < blocks.size(); i++){
-			if(blocks.get(i).pointInside(newBlock.getCenterX(), newBlock.getCenterY()))
-				blocks.get(i).merge(newBlock);
-		}
-		blocks.add(new Block(objectCoords));
+	public static void addBlock(double[] xValues, double[] yValues){
+		blocks.add(new Block(xValues, yValues));
 	}
 
 	/**

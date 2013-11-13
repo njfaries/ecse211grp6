@@ -19,9 +19,7 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class CollectionTest {
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
-	
-	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
-	
+		
 	private NXTRegulatedMotor leftMotor = Motor.A;
 	private NXTRegulatedMotor rightMotor = Motor.B;
 	private NXTRegulatedMotor clawMotor = Motor.C;

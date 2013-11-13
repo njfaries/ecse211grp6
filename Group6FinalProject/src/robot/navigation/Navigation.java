@@ -108,7 +108,7 @@ public class Navigation implements TimerListener {
 	}
 	// Calculate an angle by observing the distances in X and Y needed to be travelled by
 	private double getAngle(double dX, double dY){
-		double angle = 90 - Math.toDegrees(Math.atan2(dY, dX));
+		double angle = Math.toDegrees(Math.atan2(dY, dX));
 		if(angle < 0)
 			angle += 360;
 		else if(angle >= 360)

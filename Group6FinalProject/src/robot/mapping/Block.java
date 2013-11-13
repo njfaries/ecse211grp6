@@ -1,13 +1,19 @@
 package robot.mapping;
 
 import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
+import java.util.ArrayList;
 
 import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 public class Block {
-	private static final double blockRadius = 15;
+	private static final double blockRadius = 15, waypointDistance = 20;
+	private ArrayList<Double> xPoints = new ArrayList<Double>();
+	private ArrayList<Double> yPoints = new ArrayList<Double>();
+	private ArrayList<Point2D> points = new ArrayList<Point2D>();
+	
 	private double centerX, centerY;
 	
 	private boolean investigated;
@@ -15,26 +21,37 @@ public class Block {
 	
 	private Rectangle2D bounds;
 	double[] pos;
-	//private Coordinates objectCoordinates;
 	
 	/**
 	 * Creates a block from a set of coordinates generated from a scan
 	 * @param objectCoordinates - coordinates class containing information about the object
 	 */
-	public Block(Coordinates objectCoordinates){
-		//this.objectCoordinates = objectCoordinates;
-		double[] center = objectCoordinates.getObjectCenter();
+	public Block(double[] xValues, double[] yValues){
 		pos = new double[3];
 		
-		centerX = center[0];
-		centerY = center[1];
+		for(int i=0; i<xValues.length; i++){
+			xPoints.add(xValues[i]);
+			yPoints.add(yValues[i]);
+		}
+		
+		findCenter();
 		
 		LCD.setPixel((int)centerX, (int)centerY, 1);
 		
-		bounds = new Rectangle2D.Double(center[0] + 15, center[1] + 15, 30, 30);
+		bounds = new Rectangle2D.Double(centerX + 15, centerY + 15, 30, 30);
 		
 		investigated = false;
 		isStyrofoam = false;
+	}
+	// Averages the points to find the block's center
+	private void findCenter(){
+		double xSum = 0, ySum = 0;
+		
+		for(double d: xPoints){xSum += d;}
+		for(double d: yPoints){ySum += d;}
+		
+		centerX = xSum / xPoints.size();
+		centerY = ySum / yPoints.size();
 	}
 	
 	// Setters
@@ -50,9 +67,7 @@ public class Block {
 	public void setStyrofoam(){
 		this.isStyrofoam = true;
 	}
-	private void intersectedBy(Line2D.Double line){
 	
-	}
 	// Getters
 	/**
 	 * Returns whether or not this block has been investigated
@@ -86,9 +101,9 @@ public class Block {
 		double dY = centerY - pos[1];
 		double t = Math.atan2(dY, dX);
 		
-		double newD = Math.sqrt(dX * dX + dY * dY) - 15;
+		double distanceToPoint = Math.sqrt(dX * dX + dY * dY) - waypointDistance;
 		
-		return new double[]{pos[0] + newD * Math.sin(t), pos[1] + newD * Math.cos(t)};
+		return new double[]{pos[0] + distanceToPoint * Math.sin(t), pos[1] + distanceToPoint * Math.cos(t)};
 	}
 	/**
 	 * Determines if the path goes through this block
@@ -107,10 +122,17 @@ public class Block {
 	 * @param y - y value to test
 	 * @return boolean
 	 */
-	public boolean pointInside(double x, double y){
+	public boolean containsPoint(double x, double y){
 		double dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y-centerY, 2));
-		if(dist <= 10)
+		if(dist <= 10){
+			Point2D p = new Point2D.Double(x,y);
+			if(!points.contains(p)){
+				xPoints.add(x);
+				yPoints.add(y);
+				points.add(p);
+			}
 			return true;
+		}
 		return false;
 	}
 	/**
@@ -155,18 +177,5 @@ public class Block {
 			newWayPoint = new double[]{newWpX2, newWpY2};
 		
 		return newWayPoint;
-	}
-	
-	public double getCenterX(){
-		return centerX;
-	}
-	public double getCenterY(){
-		return centerY;
-	}
-	
-	public void merge(Block block){
-		centerX = (this.getCenterX() + block.getCenterX()) / 2;
-		centerY = (this.getCenterY() + block.getCenterY()) / 2;
-	}
-	
+	}	
 }

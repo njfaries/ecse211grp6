@@ -1,7 +1,6 @@
 package robot.test;
 import robot.base.*;
 import robot.localization.*;
-import robot.localization.Localization.Corner;
 import robot.navigation.*;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.NXTRegulatedMotor;

@@ -1,9 +1,9 @@
 package robot.test;
-import robot.base.LCDInfo;
+
 import robot.base.RobotController.RobotMode;
 import robot.collection.*;
-import robot.mapping.Coordinates;
 import robot.mapping.Map;
+import robot.mapping.Scan;
 import robot.navigation.*;
 import robot.sensors.*;
 import lejos.nxt.Motor;
@@ -22,7 +22,6 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class ScanningTest extends Thread{
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
-	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
 	
 	private NXTRegulatedMotor leftMotor = Motor.A;
 	private NXTRegulatedMotor rightMotor = Motor.B;
@@ -42,8 +41,8 @@ public class ScanningTest extends Thread{
 		new ScanningTest();
 	}
 	/**
-	 * The robot controller delegates the starting and ending of various subtasks like localization,
-	 * searching and collection.
+	 * The scanning test tests the ability for the robot to scan its surroundings and find blocks.
+	 * This involves running the Scan() while rotating using Navigation.turnTo(x,y)
 	 */
 	public ScanningTest(){
 		new Map(mode);
@@ -66,7 +65,7 @@ public class ScanningTest extends Thread{
 	public void run(){
 		while(true){
 			if(function == FunctionType.SEARCH)
-				search(315,45);
+				search(325,125);
 			
 			try{ Thread.sleep(50); }
 			catch(InterruptedException e){ }
@@ -86,9 +85,9 @@ public class ScanningTest extends Thread{
 			try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}*/
 		
-		Coordinates.scan(nav, us);
+		new Scan(nav, us);
 
-		while(!Coordinates.scanParsed()){
+		while(!Scan.scanParsed()){
 		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}
 
