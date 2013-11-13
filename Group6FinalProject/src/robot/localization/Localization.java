@@ -2,19 +2,19 @@ package robot.localization;
 import robot.sensors.ColorGather;
 import robot.sensors.USGather;
 import robot.navigation.*;
+import src.bluetooth.StartCorner;
 import lejos.nxt.*;
 
 /**
  * The localization class responsible for getting the precise position of the robot.
  * 
  * @author Nathaniel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2013-11-09
  *
  */
 
-public class Localization extends Thread {
-	public enum Corner { ONE, TWO, THREE, FOUR }; 	//To determine values for angles.
+public class Localization {
 	private final int US_OFFSET = 7;				//Measured value (distance from centre)
 	private final double LS_OFFSET_ANGLE = 29.74488;//Measured value (degrees from central axis)
 	private final double LS_OFFSET_DIST = 7;		//Measured value (distance from centre of rotation)
@@ -23,24 +23,24 @@ public class Localization extends Thread {
 	private Navigation nav;	
 	private USGather usGather;
 	private ColorGather colorGather;
-	private Corner corner;
+	private StartCorner corner;
 	private int angleAdjustment;
 	
 	
-	public Localization(UltrasonicSensor us, ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlock, Corner corner, TwoWheeledRobot robo) {
+	public Localization(UltrasonicSensor us, ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlock, StartCorner corner, TwoWheeledRobot robo) {
 		this.corner = corner;
 		usGather = new USGather(us);
 		colorGather = new ColorGather(csLeft, csRight, csBlock);
 		nav = new Navigation(robo);
 	}
 	
-	public void run() {
+	public void localize() {
 		switch(corner) {
-		case ONE: 	angleAdjustment = 0;
-		case TWO: 	angleAdjustment = 270;
-		case THREE: angleAdjustment = 180;
-		case FOUR: 	angleAdjustment = 90;
-		default: 	angleAdjustment = 0;
+		case BOTTOM_LEFT: 	angleAdjustment = 0;
+		case BOTTOM_RIGHT: 	angleAdjustment = 270;
+		case TOP_RIGHT: 	angleAdjustment = 180;
+		case TOP_LEFT: 		angleAdjustment = 90;
+		default: 			angleAdjustment = 0;
 		}
 		usLocalization();
 		nav.travelTo(10, 10);
