@@ -2,6 +2,8 @@ package robot.sensors;
 
 import lejos.nxt.ColorSensor;
 import lejos.nxt.ColorSensor.Color;
+import lejos.nxt.LCD;
+import lejos.util.Timer;
 import lejos.util.TimerListener;
 
 /**
@@ -13,13 +15,12 @@ import lejos.util.TimerListener;
  * @since 
  */
 public class ColorGather implements TimerListener {
-	
-	private double currentColorFront;
-	private double currentColorBack;
-	private double currentColorBlock;
+	private static final double LINE_THRESHOLD = 8;
+	private double currentColorLeft;
+	private double currentColorRight;
 	private ColorSensor csLeft, csRight, csBlockReader;
 	
-	private double[] lightReadingsBlock, lightReadingsFront, lightReadingsBack, diffsFront, diffsBack;
+	private double[] lightReadingsLeft, lightReadingsRight, diffsLeft, diffsRight;
 	private int readingNum;
 	private boolean isOnLine;
 	
@@ -35,38 +36,42 @@ public class ColorGather implements TimerListener {
 		this.csRight = csRight;
 		this.csBlockReader = csBlockReader;
 		
-		lightReadingsBlock = new double[7];
-		lightReadingsFront = new double[7];
-		lightReadingsBack = new double[7];
-		diffsFront = new double[7];
-		diffsBack = new double[7];
+		lightReadingsLeft = new double[7];
+		lightReadingsRight = new double[7];
+		diffsLeft = new double[7];
+		diffsRight = new double[7];
 		readingNum = -1;
 		isOnLine = false;
+		
+		Timer timer = new Timer(20, this);
+		timer.start();
 	}
 	
 	@Override
 	public void timedOut() {
-		readingNum++; // Increments the array index
-		if(readingNum >= 6) // Loops the array index if necessary
-			readingNum = 0;		
-		
 		// Gets light readings;
-		currentColorFront = csLeft.getRawLightValue();
-		currentColorBack = csRight.getRawLightValue();
+		currentColorLeft = csLeft.getRawLightValue();
+		currentColorRight = csRight.getRawLightValue();
+		
+		if(currentColorLeft < 0 || currentColorRight < 0)
+			return;
+		
+		readingNum++; // Increments the array index
+		if(readingNum > 6) // Loops the array index if necessary
+			readingNum = 0;		
 				
 		// Puts them in an array
-		lightReadingsBlock[readingNum] = currentColorBlock;
-		lightReadingsFront[readingNum] = currentColorFront;
-		lightReadingsBack[readingNum] = currentColorBack;
+		lightReadingsLeft[readingNum] = currentColorLeft;
+		lightReadingsRight[readingNum] = currentColorRight;
 		
 		// finds the differences in the light readings
 		if(readingNum > 0){
-			diffsFront[readingNum] = currentColorFront - lightReadingsFront[readingNum - 1];
-			diffsBack[readingNum] = currentColorBack - lightReadingsBack[readingNum - 1];
+			diffsLeft[readingNum] = currentColorLeft - lightReadingsLeft[readingNum - 1];
+			diffsRight[readingNum] = currentColorRight - lightReadingsRight[readingNum - 1];
 		}
 		else{
-			diffsFront[readingNum] = currentColorFront - lightReadingsFront[6];
-			diffsBack[readingNum] = currentColorBack - lightReadingsBack[6];
+			diffsLeft[readingNum] = currentColorLeft - lightReadingsLeft[6];
+			diffsRight[readingNum] = currentColorRight - lightReadingsRight[6];
 		}		
 	}
 	
@@ -95,14 +100,17 @@ public class ColorGather implements TimerListener {
 	 public boolean isBlue() {
 		
 		int red = getFilteredRed();
-		try { Thread.sleep(10); } 
-		catch (InterruptedException e) {}
+		try { Thread.sleep(10); } catch (InterruptedException e) {}
+		
 		int blue = getFilteredBlue();
-		try { Thread.sleep(10); } 
-		catch (InterruptedException e) {}
+		try { Thread.sleep(10); }  catch (InterruptedException e) {}
+		
 		csBlockReader.setFloodlight(false);
-		if(red - blue < 50) { return true; }
-		else { return false; }
+		
+		if(red - blue < 50)
+			return true; 
+		else
+			return false; 
 	}
 	
 	/**
@@ -115,9 +123,9 @@ public class ColorGather implements TimerListener {
 		double[] diffs = null;
 		
 		if(sensor == 0)
-			diffs = diffsFront;
+			diffs = diffsLeft;
 		else
-			diffs = diffsBack;
+			diffs = diffsRight;
 				
 		// finds the average of the past 7 differences
 		double sumDiff = 0;
@@ -125,11 +133,40 @@ public class ColorGather implements TimerListener {
 		sumDiff = sumDiff / 7;
 		
 		// going on/off a line determined by the average of the past 7 light differences
-		if(!isOnLine && sumDiff < -10)
+		if(!isOnLine && sumDiff < -LINE_THRESHOLD)
 			isOnLine = true;
-		else if(isOnLine && sumDiff > 10)
+		else if(isOnLine && sumDiff > LINE_THRESHOLD)
 			isOnLine = false;
 
 		return isOnLine;
+	}
+	
+	public double getLineSensorReading(int sensor){
+		double sumDiff = 0;
+		
+		int readingIndex = readingNum;
+		if(readingIndex < 0)
+			readingIndex = 0;
+		
+		double[] diffs = new double[7];
+		if(sensor == 0)
+			diffs = diffsLeft;
+		else
+			diffs = diffsRight;
+		
+		for(int i=0; i < diffs.length; i++){
+			if(i < 3)
+				LCD.drawString((int)diffs[i] + "|",4*i, 2);
+			else if(i < 6)
+				LCD.drawString((int)diffs[i] + "|",4*(i-3), 3);
+			else
+				LCD.drawString((int)diffs[i] + "|",1, 4);
+		}
+		for(double d : diffs){
+			sumDiff += d;
+		};
+		sumDiff = sumDiff / 7;
+		
+		return sumDiff;
 	}
 }
