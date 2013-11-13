@@ -16,7 +16,6 @@ import lejos.nxt.UltrasonicSensor;
 public class USGather implements TimerListener {
 	
 	private int distance;
-	private int medianDistance;
 	private boolean filter;
 	
 	private final int SEN_TO_CENTER = 7;
@@ -25,10 +24,6 @@ public class USGather implements TimerListener {
 	private final int WALL_ERROR = 20;
 	private double[] pos = new double[3];
 	private UltrasonicSensor us;
-	
-	private int[] distances = new int[5];
-	private int[] sorted = new int[5];
-	private int distanceIndex = 0;
 	
 	private Object lock = new Object();
 	
@@ -49,20 +44,7 @@ public class USGather implements TimerListener {
 	
 	public void timedOut() {
 		synchronized(lock){
-			distance = us.getDistance();
-			
-			if(distance > 70)
-				distance = 211;
-			
-			distances[distanceIndex] = distance;
-			sorted = distances;
-			Arrays.sort(sorted);
-			
-			medianDistance = sorted[2];
-			
-			distanceIndex++;
-			if(distanceIndex > 4)
-				distanceIndex = 0;
+			distance = getFilteredData();
 		}
 	}
 	
@@ -106,8 +88,6 @@ public class USGather implements TimerListener {
 				}
 			
 			}	
-		if(distance > 50)
-			return 211;
 		return filterWall(distance + SEN_TO_CENTER);
 	}
 	
@@ -119,8 +99,8 @@ public class USGather implements TimerListener {
 		double theta = pos[2];
 		
 		//find the x and y coordinate at distance being read
-		double readX = x + reading * Math.cos(Math.toRadians(theta));
-		double readY = y + reading * Math.sin(Math.toRadians(theta));
+		double readX = x + reading*Math.cos(Math.toRadians(theta));
+		double readY = y + reading*Math.sin(Math.toRadians(theta));
 		//checking if coordinate is a wall value
 		if(readY < WALL_ERROR || readY > 240 - WALL_ERROR || readX < WALL_ERROR || readX > 240 - WALL_ERROR) { 
 			reading = 200; 
@@ -135,7 +115,9 @@ public class USGather implements TimerListener {
 	 * @return double: distance
 	 */
 	public double getDistance(){
-		//return distance;
-		return medianDistance;
+		synchronized(lock){
+			// Should return the distance from the center of the robot
+			return distance;
+		}
 	}
 }
