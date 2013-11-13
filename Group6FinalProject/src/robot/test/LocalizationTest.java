@@ -1,8 +1,15 @@
 package robot.test;
 import robot.base.*;
 import robot.localization.*;
+import robot.localization.Localization.StartCorner;
 import robot.navigation.*;
+import robot.sensors.ColorGather;
+import robot.sensors.USGather;
+import lejos.nxt.Button;
 import lejos.nxt.ColorSensor;
+import lejos.nxt.LCD;
+import lejos.nxt.Motor;
+import lejos.nxt.MotorPort;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
@@ -18,34 +25,43 @@ import lejos.nxt.UltrasonicSensor;
 
 public class LocalizationTest {
 	
-	private static NXTRegulatedMotor leftMotor;
-	private static NXTRegulatedMotor rightMotor;
-	private static UltrasonicSensor us = new UltrasonicSensor(SensorPort.S1);
-	private static ColorSensor csLeft = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csRight = new ColorSensor(SensorPort.S3);
-	private static ColorSensor csBlock = new ColorSensor(SensorPort.S4);
+	private static NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
+	private static NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
+	private static UltrasonicSensor us = new UltrasonicSensor(SensorPort.S4);
+	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
+	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
+	private static ColorSensor csBlock = new ColorSensor(SensorPort.S3);
 	
 	private static TwoWheeledRobot robo;
 	private static Localization loc;
 	
 	public static void main(String args[]) {
+		Motor.C.rotate(-360);
+		int buttonChoice;
+		LCD.drawString("Running...", 0, 0);
+		buttonChoice = Button.waitForAnyPress();
+		while (buttonChoice != Button.ID_ENTER){}
+		LCD.drawString("Localizing...", 0, 1);
 		new LocalizationTest();
+		LCD.drawString("Done", 0, 2);
+		buttonChoice = Button.waitForAnyPress();
+		while (buttonChoice != Button.ID_ESCAPE) {}
 	}
 	
 	public LocalizationTest() {
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		loc = new Localization(us, csLeft, csRight, csBlock, Localization.Corner.ONE, robo);
+		new Odometer(robo);
+		Navigation nav = new Navigation(robo);
+		ColorGather cg = new ColorGather(csLeft, csRight, csBlock);
+		USGather usg = new USGather(us);
 		
-		new LCDInfo();
-	}
-	
-	public void run() {
-		localize();
-	}
-	
-	public void localize() {
-		loc.start();
+		loc = new Localization(us, csLeft, csRight, csBlock, StartCorner.BOTTOM_LEFT, robo);
 		
+		
+		//new LCDInfo();
+		//loc.usLocalization();
+		loc.lightLocalization();
+		
+		//this.start();
 	}
-
 }
