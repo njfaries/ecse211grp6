@@ -9,17 +9,16 @@ public class NonLinearDataFilter {
 	//constants
 	//EDITED SUM THRESH FOR TESTING!!!
 	private final int HALF_SCOPE_SIZE = 2;
-	private final double SUM_THRESHOLD = 3;
+	private final double SUM_THRESHOLD = 5;
 	private final double SAFE_DIST = 10.0;
 	private final int SHIFT_SCOPE = 2;
 	
 	//inputs
 	private double[] xs, ys, rs, ts;
 	private double scanLocX, scanLocY, safeDist;
-	public int mostLinIndex;
 	
 	//generated: waypoint xs, way point ys, point to check for blue block: (validXs, validYs)
-	private double[] wxs, wys, sumErrors, validXs, validYs;
+	private double[] wxs, wys, sumErrors, validXs, validYs, validRs, validTs;
 	
 	//NOTE: safeDist is the distance we want the waypoint to be perpendicularly back from the block
 	//if only processing data it safeDist  = 0
@@ -41,41 +40,49 @@ public class NonLinearDataFilter {
 		generateWP();
 		generateSumErrors();
 		generateValidWP();
-		this.mostLinIndex = mostLinearIndex();
 		
 	}
 	
 	//returns an array of valid x waypoints
 	public double[] getValidXWP() {
-		double[] xs = new double[validXs.length];
-		xs = validXs;
-		return xs;
+		return validXs;
 	}
 	
 	//returns an array of valid y waypoints
 	public double[] getValidYWP() {
-		double[] ys = new double[validYs.length];
-		ys = validYs;
-		return ys;
+		return validYs;
+	}
+	
+	//returns an array of valid x waypoints
+	public double[] getValidRWP() {
+		return validRs;
+	}
+	
+	//returns an array of valid y waypoints
+	public double[] getValidTWP() {
+		return validTs;
 	}
 	
 	//generates valid linear waypoints
 	public void generateValidWP() {
 		int numValidWP = 0;
-		//check number of valid lines for array creation, could have used arraylist...
 		for(int i = 0; i < sumErrors.length; i++) {
 			if(sumErrors[i] < SUM_THRESHOLD) {
 				numValidWP++;
 			}
 		}
-		//System.out.println("numValidWP: " + numValidWP);
 		this.validXs = new double[numValidWP];
 		this.validYs = new double[numValidWP];
+		this.validRs = new double[numValidWP];
+		this.validTs = new double[numValidWP];
 		int validIndex = 0;
 		for(int i = 0; i < sumErrors.length; i++) {
 			if(sumErrors[i] < SUM_THRESHOLD) {
 				validXs[validIndex] = wxs[i];
 				validYs[validIndex] = wys[i];
+				//adding rs and ts outputs to send to another data anaylysis class
+				validRs[validIndex] = Math.sqrt(wxs[i]*wxs[i] + wys[i]*wys[i]);
+				validTs[validIndex] = Math.toDegrees( Math.atan(wys[i]/wxs[i]) );
 				validIndex++;
 			}
 		}
@@ -129,19 +136,6 @@ public class NonLinearDataFilter {
 	//method returns hypotenuse or distance between two points
 	public double distanceBetweenPoints(double xi, double yi, double xf, double yf) {
 		return Math.sqrt( (xf - xi)*(xf - xi) + (yf - yi)*(yf -yi) );
-	}
-	
-	//method to return the most linear waypoint index
-	public int mostLinearIndex() {
-		double min = 2000;
-		int minIndex = 0;
-		for(int i = 0; i < sumErrors.length; i++) {
-			if(sumErrors[i] < min) {
-				min = sumErrors[i];
-				minIndex = i;
-			}
-		}
-		return minIndex;
 	}
 	
 }
