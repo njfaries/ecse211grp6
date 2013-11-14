@@ -3,20 +3,23 @@ package robot.mapping;
 import java.util.ArrayList;
 import java.lang.Math;
 
+
 public class NonLinearDataFilter {
 	
 	//constants
-	private final double SUM_THRESHOLD = 5.0;
-	private final int HALF_SCOPE_SIZE = 3;
+	//EDITED SUM THRESH FOR TESTING!!!
+	private final int HALF_SCOPE_SIZE = 2;
+	private final double SUM_THRESHOLD = 3;
 	private final double SAFE_DIST = 10.0;
+	private final int SHIFT_SCOPE = 2;
 	
 	//inputs
 	private double[] xs, ys, rs, ts;
 	private double scanLocX, scanLocY, safeDist;
+	public int mostLinIndex;
 	
 	//generated: waypoint xs, way point ys, point to check for blue block: (validXs, validYs)
 	private double[] wxs, wys, sumErrors, validXs, validYs;
-	private int[] validLineIndexes;
 	
 	//NOTE: safeDist is the distance we want the waypoint to be perpendicularly back from the block
 	//if only processing data it safeDist  = 0
@@ -38,6 +41,7 @@ public class NonLinearDataFilter {
 		generateWP();
 		generateSumErrors();
 		generateValidWP();
+		this.mostLinIndex = mostLinearIndex();
 		
 	}
 	
@@ -72,8 +76,6 @@ public class NonLinearDataFilter {
 			if(sumErrors[i] < SUM_THRESHOLD) {
 				validXs[validIndex] = wxs[i];
 				validYs[validIndex] = wys[i];
-				//System.out.println( "validXs[" + validIndex + "]: " + (int)validXs[validIndex] +
-				//	 ", validYs[" + validIndex + "]: " + (int)validYs[validIndex] );
 				validIndex++;
 			}
 		}
@@ -82,10 +84,10 @@ public class NonLinearDataFilter {
 	//generate potential waypoints starting from the half scope size
 	public void generateWP() {
 		for(int i = 0; i < wxs.length; i++) {
-			wxs[i] = scanLocX + (rs[i + HALF_SCOPE_SIZE] - safeDist)*Math.cos(Math.toRadians(ts[i + HALF_SCOPE_SIZE]));
-			wys[i] = scanLocY + (rs[i + HALF_SCOPE_SIZE] - safeDist)*Math.sin(Math.toRadians(ts[i + HALF_SCOPE_SIZE]));
-			//System.out.println( "rs[" + (i+3) + "]: " + (int)rs[i+3] + ", ts[" + (i+3) + "]: " + (int)ts[i+3] );
-			//System.out.println( "wxs[" + i + "]: " + (int)wxs[i] + ", wys[" + i + "]: " + (int)wys[i] );
+			//here the indexes moved SHIFT_SCOPE to account for left to right/ right to left scanning
+			wxs[i] = scanLocX + (rs[i + HALF_SCOPE_SIZE + SHIFT_SCOPE] - safeDist)*Math.cos(Math.toRadians(ts[i + HALF_SCOPE_SIZE + SHIFT_SCOPE]));
+			wys[i] = scanLocY + (rs[i + HALF_SCOPE_SIZE + SHIFT_SCOPE] - safeDist)*Math.sin(Math.toRadians(ts[i + HALF_SCOPE_SIZE + SHIFT_SCOPE]));
+			
 		}
 	}
 	
@@ -93,7 +95,6 @@ public class NonLinearDataFilter {
 	public void generateSumErrors() {
 		for(int i = 0; i < sumErrors.length; i++) {
 			sumErrors[i] = sumTrendError(xs[i], ys[i], xs[ i+ 2*HALF_SCOPE_SIZE], ys[i + 2*HALF_SCOPE_SIZE], i, i + 2*HALF_SCOPE_SIZE);
-			//System.out.println( "sumErrors[" + i + "]: " + sumErrors[i] );
 		}
 	}
 	
@@ -110,9 +111,9 @@ public class NonLinearDataFilter {
 			mCur = generateSlope(xi ,yi ,xs[i] ,ys[i]);
 			curTrendAngle = acuteAngleBetweenLines(mCur,mTrend);
 			hypotenuse = distanceBetweenPoints(xi, yi, xs[i], ys[i]);
-			sum = sum + hypotenuse*Math.sin(curTrendAngle);
+			sum = sum + Math.abs(hypotenuse*Math.sin(curTrendAngle));
 		}
-		return Math.abs(sum);
+		return sum;
 	}
 
 	//generates a slope from two points
@@ -128,6 +129,19 @@ public class NonLinearDataFilter {
 	//method returns hypotenuse or distance between two points
 	public double distanceBetweenPoints(double xi, double yi, double xf, double yf) {
 		return Math.sqrt( (xf - xi)*(xf - xi) + (yf - yi)*(yf -yi) );
+	}
+	
+	//method to return the most linear waypoint index
+	public int mostLinearIndex() {
+		double min = 2000;
+		int minIndex = 0;
+		for(int i = 0; i < sumErrors.length; i++) {
+			if(sumErrors[i] < min) {
+				min = sumErrors[i];
+				minIndex = i;
+			}
+		}
+		return minIndex;
 	}
 	
 }
