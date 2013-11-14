@@ -51,7 +51,7 @@ public class OdometryCorrection {
 	 * @param data - The array containing current x, y, and theta values. This array will be updated with corrected values if available.
 	 * @param speed - Forward unsigned speed of the robot (to be used in calculations)
 	 */
-	public void update(double[] data, double speed){
+	public void update(double[] pos, double speed){
 		long currTime = System.currentTimeMillis();
 		
 		if(cg.isOnLine(0) && !newLeftData){
@@ -59,9 +59,9 @@ public class OdometryCorrection {
 			newLeftData = true;
 			
 			if(newRightData){
-				getNewAngle(data[2], speed, leftTime, rightTime);
+				getNewAngle(pos[2], speed, leftTime, rightTime);
 				if(updateT)
-					getNewPosition(data[0], data[1]);
+					getNewPosition(pos[0], pos[1]);
 			}
 		}
 		if(cg.isOnLine(1) && !newRightData){
@@ -69,9 +69,9 @@ public class OdometryCorrection {
 			newRightData = true;
 			
 			if(newLeftData){
-				getNewAngle(data[2], speed, rightTime, leftTime);
+				getNewAngle(pos[2], speed, rightTime, leftTime);
 				if(updateT)
-					getNewPosition(data[0], data[1]);
+					getNewPosition(pos[0], pos[1]);
 			}
 		}
 		if(!cg.isOnLine(0) && !cg.isOnLine(1) && newRightData && newLeftData){
@@ -80,11 +80,11 @@ public class OdometryCorrection {
 		}
 		
 		if(updateX)
-			data[0] = this.newX;
+			pos[0] = this.newX;
 		if(updateY)
-			data[1] = this.newY;
+			pos[1] = this.newY;
 		if(updateT)
-			data[2] = this.newT;
+			pos[2] = this.newT;
 	}
 	
 	// Gets the new angle based on the time between the crossing of both sensors, 

@@ -2,6 +2,7 @@ package robot.base;
 
 import robot.collection.*;
 import robot.localization.Localization;
+import robot.localization.Localization.StartCorner;
 import robot.mapping.Map;
 import robot.mapping.Scan;
 import robot.navigation.*;
@@ -85,9 +86,10 @@ public class RobotController extends Thread {
 
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation(robo);
-		corrector = new OdometryCorrection(cg, WHEEL_RADIUS,
-				ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		odo = new Odometer(robo/* , corrector */);
+		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
+		
+		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
+		odo = new Odometer(robo , corrector);
 
 		id = new Identify(cg, us, nav);
 
@@ -171,6 +173,7 @@ public class RobotController extends Thread {
 	// Handles navigating to a point (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToBlock() {
+		Odometer.runCorrection(true);
 		while (!nav.isDone()) {
 			// Keep the ultrasonic sensor scanning to detect obstacles
 			// If an obstacle appears (probably the other player)

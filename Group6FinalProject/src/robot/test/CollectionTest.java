@@ -50,7 +50,7 @@ public class CollectionTest {
 		cg = new ColorGather(csFront, csBack, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo);
+		new Odometer(robo, null);
 		nav = new Navigation(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);

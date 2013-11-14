@@ -15,7 +15,7 @@ import lejos.util.TimerListener;
  * @since 
  */
 public class ColorGather implements TimerListener {
-	private static final double LINE_THRESHOLD = 8;
+	private static final double LINE_THRESHOLD = 5;
 	private double currentColorLeft;
 	private double currentColorRight;
 	private ColorSensor csLeft, csRight, csBlockReader;
@@ -33,7 +33,9 @@ public class ColorGather implements TimerListener {
 	 */
 	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader) {
 		this.csLeft = csLeft;
+		csLeft.setFloodlight(Color.RED);
 		this.csRight = csRight;
+		csRight.setFloodlight(Color.RED);
 		this.csBlockReader = csBlockReader;
 		
 		lightReadingsLeft = new double[7];
@@ -139,34 +141,5 @@ public class ColorGather implements TimerListener {
 			isOnLine = false;
 
 		return isOnLine;
-	}
-	
-	public double getLineSensorReading(int sensor){
-		double sumDiff = 0;
-		
-		int readingIndex = readingNum;
-		if(readingIndex < 0)
-			readingIndex = 0;
-		
-		double[] diffs = new double[7];
-		if(sensor == 0)
-			diffs = diffsLeft;
-		else
-			diffs = diffsRight;
-		
-		for(int i=0; i < diffs.length; i++){
-			if(i < 3)
-				LCD.drawString((int)diffs[i] + "|",4*i, 2);
-			else if(i < 6)
-				LCD.drawString((int)diffs[i] + "|",4*(i-3), 3);
-			else
-				LCD.drawString((int)diffs[i] + "|",1, 4);
-		}
-		for(double d : diffs){
-			sumDiff += d;
-		};
-		sumDiff = sumDiff / 7;
-		
-		return sumDiff;
 	}
 }

@@ -1,5 +1,6 @@
 package robot.navigation;
 
+import lejos.nxt.LCD;
 import lejos.util.Timer;
 import lejos.util.TimerListener;
 
@@ -12,9 +13,9 @@ import lejos.util.TimerListener;
  */
 public class Navigation implements TimerListener {
 	private final double FORWARD_SPEED = 10;
-	private final double ROTATION_SPEED = 30;
+	private final double ROTATION_SPEED = 40;
 	private final double ANGLE_ERROR_THRESH = 2;
-	private final double DIST_ERROR_THRESH = 1;
+	private final double DIST_ERROR_THRESH = 1.5;
 	
 	private TwoWheeledRobot robo;
 	//will need getters and setters
@@ -124,6 +125,8 @@ public class Navigation implements TimerListener {
 	 * @param y - The destination y value
 	 */
 	public void travelTo(double x, double y) {
+		LCD.drawString("Travel", 0,4);
+		
 		destinationX = x;
 		destinationY = y;
 		destinationT = -1;

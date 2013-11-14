@@ -6,7 +6,7 @@ import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 public class ScanAnalysis {
-	private static final double DIST_THRESHOLD = 10;
+	private static final double DIST_THRESHOLD = 1;
 	private static int iteration = 0;
 	
 	private double[] pos = new double[3];
@@ -24,11 +24,10 @@ public class ScanAnalysis {
 		// Filters out values where the radius is constant (robot is seeing a max point but could be looking at a gap)
 		// Also filters out values above 60
 		double[] rValuesFiltered = rValues;
-		for(int i = 0; i < tValues.length - 2; i++){
+		for(int i = 1; i < tValues.length - 1; i++){
 			if(rValues[i] > 60)
 				rValuesFiltered[i] = -1;
-			if(Math.abs(rValues[i + 1] - rValues[i]) < DIST_THRESHOLD && 
-					Math.abs(rValues[i + 2] - rValues[i]) < DIST_THRESHOLD){
+			if(Math.abs(rValues[i + 1] - rValues[i]) < DIST_THRESHOLD && Math.abs(rValues[i - 1] - rValues[i]) < DIST_THRESHOLD){
 				rValuesFiltered[i] = -1;
 			}
 		}
@@ -69,7 +68,7 @@ public class ScanAnalysis {
 		double[] xValues = new double[end - start + 1];
 		double[] yValues = new double[end - start + 1];
 		
-		LCD.drawString((int)rValues[start] + "|",iteration*4,1);
+		LCD.drawString((int)rValues[start] + "|",iteration * 4,1);
 		
 		Odometer.getPosition(pos);
 		for(int i = start; i < end + 1; i++){	

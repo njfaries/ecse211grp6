@@ -42,7 +42,7 @@ public class Scan {
 				rValues.add(dist);
 			}
 
-			try { Thread.sleep(20); } catch (InterruptedException e) {}
+			try { Thread.sleep(50); } catch (InterruptedException e) {}
 		}
 		
 		// Convert the arrayLists to arrays

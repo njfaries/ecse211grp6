@@ -49,7 +49,20 @@ public class Map {
 			endZone.setLocation(30, 300);
 		}
 	}
+	
+	private static Block getClosestBlock(){
+		double closestValue = 255;
+		int closestIndex = -1;
 		
+		for(int i=0; i < blocks.size(); i++){
+			if(blocks.get(i).distanceToBlock() < closestValue){
+				closestValue = blocks.get(i).distanceToBlock();
+				closestIndex = i;
+			}
+		}
+		
+		return blocks.get(closestIndex);
+	}
 	// Setters
 	/**
 	 * Sets the current block as having been checked. Also sets the block as being styrofoam or not
@@ -114,6 +127,14 @@ public class Map {
 	 * @param newCoords - New set of coordinates to add to the map
 	 */
 	public static void addBlock(double[] xValues, double[] yValues){
+		Block newBlock = new Block(xValues, yValues);
+		double[] center = newBlock.getBlockCenter();
+		for(int i=0; i < blocks.size(); i++){
+			if(blocks.get(i).containsPoint(center[0], center[1])){
+				blocks.get(i).mergeBlock(newBlock);
+				return;
+			}
+		}
 		blocks.add(new Block(xValues, yValues));
 	}
 
@@ -152,5 +173,8 @@ public class Map {
 	}
 	public static Block getCurrentBlock(){
 		return blocks.get(currentBlockIndex);
+	}
+	public static int getBlockCount(){
+		return blocks.size();
 	}
 }

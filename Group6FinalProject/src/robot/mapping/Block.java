@@ -1,7 +1,6 @@
 package robot.mapping;
 
 import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
@@ -12,7 +11,6 @@ public class Block {
 	private static final double blockRadius = 15, waypointDistance = 20;
 	private ArrayList<Double> xPoints = new ArrayList<Double>();
 	private ArrayList<Double> yPoints = new ArrayList<Double>();
-	private ArrayList<Point2D> points = new ArrayList<Point2D>();
 	
 	private double centerX, centerY;
 	
@@ -124,15 +122,8 @@ public class Block {
 	 */
 	public boolean containsPoint(double x, double y){
 		double dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y-centerY, 2));
-		if(dist <= 10){
-			Point2D p = new Point2D.Double(x,y);
-			if(!points.contains(p)){
-				xPoints.add(x);
-				yPoints.add(y);
-				points.add(p);
-			}
+		if(dist <= 10)
 			return true;
-		}
 		return false;
 	}
 	/**
@@ -178,4 +169,20 @@ public class Block {
 		
 		return newWayPoint;
 	}	
+	public ArrayList<Double> getXValues(){
+		return xPoints;
+	}
+	public ArrayList<Double> getYValues(){
+		return yPoints;
+	}
+	public void mergeBlock(Block newBlock){
+		xPoints.addAll(newBlock.getXValues());
+		yPoints.addAll(newBlock.getYValues());
+		
+		findCenter();
+	}
+	public double distanceToBlock(){
+		Odometer.getPosition(pos);
+		return Math.sqrt(Math.pow(centerX - pos[0],2) + Math.pow(centerY - pos[1],2));
+	}
 }
