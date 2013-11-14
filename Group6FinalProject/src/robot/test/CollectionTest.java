@@ -5,10 +5,11 @@ import robot.collection.*;
 import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
+import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
-import static org.mockito.Mockito.*;
 
 /**
  * Test class.
@@ -19,26 +20,23 @@ import static org.mockito.Mockito.*;
  */
 public class CollectionTest {
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
+		
+	private NXTRegulatedMotor leftMotor = Motor.A;
+	private NXTRegulatedMotor rightMotor = Motor.B;
+	private NXTRegulatedMotor clawMotor = Motor.C;
 	
-	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
+	private UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
+	private ColorSensor csFront = new ColorSensor(SensorPort.S1);
+	private ColorSensor csBack = new ColorSensor(SensorPort.S2);
+	private ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
 	
-	private static NXTRegulatedMotor leftMotor;
-	private static NXTRegulatedMotor rightMotor;
-	private static NXTRegulatedMotor motor1;
+	private TwoWheeledRobot robo;
+	private USGather us;
+	private ColorGather cg;
+	private CollectionSystem collection;
+	private Navigation nav;
 	
-	private static UltrasonicSensor usFront;
-	private static ColorSensor csFront;
-	private static ColorSensor csBack;
-	private static ColorSensor csBlockReader;
-	
-	private static OdometryCorrection corrector;
-	private static TwoWheeledRobot robo;
-	private static USGather us;
-	private static ColorGather cg;
-	private static CollectionSystem collection;
-	private static Navigation nav;
-	
-	private static FunctionType function = FunctionType.IDLE;
+	private static FunctionType function = FunctionType.COLLECT;
 	
 	int[] distances = new int[]{0,1,2,3};
 	int distanceIndex = 0;
@@ -46,23 +44,21 @@ public class CollectionTest {
 	public static void main(String[] args) {
 		new CollectionTest();
 	}
-	public CollectionTest(){
-		new Map(RobotMode.STACKER);
-		
-		usFront = mock(UltrasonicSensor.class);
-		when(usFront.getDistance()).thenReturn(getNextDist());
-		
+	public CollectionTest(){		
 		us = new USGather(usFront);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		new Odometer(robo, corrector);
+		new Odometer(robo, null);
 		nav = new Navigation(robo);
 		
+		collection = new CollectionSystem(clawMotor, nav, us);
+		
 		new LCDInfo();
+		run();
 	}
 	// Runs all the control code (calling localization, navigation, identification, etc)
+	
 	public void run(){
 		while(true){
 			if(function == FunctionType.COLLECT)
