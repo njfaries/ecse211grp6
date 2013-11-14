@@ -22,7 +22,7 @@ public class NavigationTest extends Thread{
 	Navigation nav;
 	
 	 // This controls which points the navigation travels to
-	double[][] waypoints = new double[][]{{30,30}};
+	double[][] waypoints = new double[][]{{60,60}};
 	int wpIndex = 0;
 	
 	public static void main(String[] args) {
@@ -49,8 +49,8 @@ public class NavigationTest extends Thread{
 	}
 	// Handles navigating to a point (allows the scanner to continue in case an unexpected obstacle appears (i.e. the other player)
 	private void navigate(){
-		//nav.travelTo(waypoints[wpIndex][0], waypoints[wpIndex][1]);
-		nav.turnTo(45, 0);
+		nav.travelTo(waypoints[wpIndex][0], waypoints[wpIndex][1]);
+		//nav.turnTo(45, 0);
 		
 		while(!nav.isDone()){
 			try{ Thread.sleep(200); }
