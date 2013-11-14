@@ -43,9 +43,7 @@ public class CollectionTest {
 	public static void main(String[] args) {
 		new CollectionTest();
 	}
-	public CollectionTest(){
-		new Map(RobotMode.STACKER);
-		
+	public CollectionTest(){		
 		us = new USGather(usFront);
 		cg = new ColorGather(csFront, csBack, csBlockReader);
 		

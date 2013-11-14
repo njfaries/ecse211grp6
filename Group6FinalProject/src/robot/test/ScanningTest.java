@@ -1,11 +1,15 @@
 package robot.test;
 
+import java.util.ArrayList;
+
 import robot.base.RobotController.RobotMode;
 import robot.collection.*;
+import robot.mapping.Block;
 import robot.mapping.Map;
 import robot.mapping.Scan;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.LCD;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
@@ -45,7 +49,7 @@ public class ScanningTest extends Thread{
 	 * This involves running the Scan() while rotating using Navigation.turnTo(x,y)
 	 */
 	public ScanningTest(){
-		new Map(mode);
+		new Map(150,150,180,180);
 		
 		CollectionSystem collect = new CollectionSystem(cageMotor, nav);
 		collect.raiseCage();
@@ -80,7 +84,7 @@ public class ScanningTest extends Thread{
 		}
 		
 		nav.turnTo(toAngle, 1);
-		 
+		
 /*		while(!nav.isDone()){
 			try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}*/
@@ -90,7 +94,22 @@ public class ScanningTest extends Thread{
 		while(!Scan.scanParsed()){
 		 	try{Thread.sleep(400);} catch(InterruptedException e){ }
 		}
-
+		
+		Map.cleanBlocks();
+		
+		ArrayList<Block> blocks = Map.getBlocks();
+		//LCD.clear();
+		LCD.drawInt(blocks.size(), 0, 0);
+		for(int i=0; i < blocks.size(); i++){
+			LCD.drawString(blocks.get(i).getConfidence() + "|", 3 * i, 1);
+			double[] center = blocks.get(i).getBlockCenter();
+			if(i < 2)
+				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * i, 2);
+			else if(i < 4)
+				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * (i-2), 3);
+			else
+				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * (i-4), 4);
+		}
 		function = FunctionType.IDLE;
 	}
 	

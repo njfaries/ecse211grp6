@@ -33,6 +33,8 @@ public class Scan {
 			double dist = us.getDistance();
 			double angle = (int)pos[2];
 
+			if(dist > 60)
+				continue;
 			if(tValues.contains(angle) && rValues.get(tValues.indexOf(angle)) != -1){
 				int i = tValues.indexOf(angle);
 				tValues.set(i, (rValues.get(i) + dist) / 2);
@@ -49,11 +51,17 @@ public class Scan {
 		
 		double[] tArray = new double[tValues.size()];
 		double[] rArray = new double[rValues.size()];
+		double[] xArray = new double[tValues.size()];
+		double[] yArray = new double[rValues.size()];
+		Odometer.getPosition(pos);
 		
 		for(int i=0; i < tValues.size(); i++){
 			tArray[i] = tValues.get(i);
 			rArray[i] = rValues.get(i);
+			xArray[i] = pos[0] + rArray[i] * Math.cos(Math.toRadians(rArray[i]));
+			yArray[i] = pos[0] + rArray[i] * Math.sin(Math.toRadians(rArray[i]));
 		}
+		
 		Status.setStatus("" + tArray.length);
 		LCD.drawString((int)tArray.length + "",0,0);
 		

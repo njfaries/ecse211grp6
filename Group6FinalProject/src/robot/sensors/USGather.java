@@ -88,7 +88,7 @@ public class USGather implements TimerListener {
 				}
 			
 			}	
-		return filterWall(distance + SEN_TO_CENTER);
+		return filterWall(distance + 2 * SEN_TO_CENTER);
 	}
 	
 	//method to test and filter out wall readings and filtering out found blocks

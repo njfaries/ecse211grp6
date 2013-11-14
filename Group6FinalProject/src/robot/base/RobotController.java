@@ -29,8 +29,8 @@ public class RobotController extends Thread {
 		STACKER, GARBAGE
 	};
 
-	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH,
-			ODOCORRECT_SENS_DIST;
+	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
+	private static int endX1, endY1, endX2, endY2;
 
 	private double scanStart = 0;
 	private int scanAngle = 90, scanDirection = 0;
@@ -78,7 +78,9 @@ public class RobotController extends Thread {
 	 * subtasks like localization, searching and collection.
 	 */
 	public RobotController() {
-		new Map(mode);
+		receive();
+		
+		new Map(endX1, endY1, endX2, endY2);
 		new LCDInfo();
 
 		us = new USGather(usFront);
@@ -94,8 +96,6 @@ public class RobotController extends Thread {
 		id = new Identify(cg, us, nav);
 
 		collection = new CollectionSystem(clawMotor, nav);
-
-		receive();
 
 		this.start();
 	}

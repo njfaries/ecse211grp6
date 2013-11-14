@@ -122,7 +122,7 @@ public class Block {
 	 */
 	public boolean containsPoint(double x, double y){
 		double dist = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y-centerY, 2));
-		if(dist <= 10)
+		if(dist <= blockRadius)
 			return true;
 		return false;
 	}
@@ -180,6 +180,9 @@ public class Block {
 		yPoints.addAll(newBlock.getYValues());
 		
 		findCenter();
+	}
+	public int getConfidence(){
+		return xPoints.size();
 	}
 	public double distanceToBlock(){
 		Odometer.getPosition(pos);

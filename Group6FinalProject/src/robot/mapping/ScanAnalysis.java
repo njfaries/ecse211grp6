@@ -6,7 +6,7 @@ import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 public class ScanAnalysis {
-	private static final double DIST_THRESHOLD = 1;
+	private static final double DIST_THRESHOLD = 2;
 	private static int iteration = 0;
 	
 	private double[] pos = new double[3];
@@ -25,8 +25,6 @@ public class ScanAnalysis {
 		// Also filters out values above 60
 		double[] rValuesFiltered = rValues;
 		for(int i = 1; i < tValues.length - 1; i++){
-			if(rValues[i] > 60)
-				rValuesFiltered[i] = -1;
 			if(Math.abs(rValues[i + 1] - rValues[i]) < DIST_THRESHOLD && Math.abs(rValues[i - 1] - rValues[i]) < DIST_THRESHOLD){
 				rValuesFiltered[i] = -1;
 			}
@@ -35,6 +33,7 @@ public class ScanAnalysis {
 		try{
 			// Parse filtered arrays
 			parseValues(tValues, rValuesFiltered);
+			Scan.scanParsed = true;
 		}
 		catch(Exception e){
 			//LCD.drawString(e.toString(), 0,0);
@@ -53,7 +52,7 @@ public class ScanAnalysis {
 				start = i;
 			}
 			else if (rValues[i] == -1 && start != -1 && end == -1){
-				end = i;
+				end = i - 1;
 				break;
 			}
 		}
@@ -92,6 +91,5 @@ public class ScanAnalysis {
 		iteration++;
 		
 		parseValues(tValues2, rValues2);
-			
 	}
 }

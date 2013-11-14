@@ -18,15 +18,18 @@ import robot.navigation.Odometer;
 public class Map {
 	//arrays need to be filled upon construction to avoid null pointers
 	public static final double xMax = 360, yMax = 360;
+	public static final int CONFIDENCE_THRESHOLD = 10;
 	
-	private static double wpX = 0, wpY = 0;
-	private static double[][] waypointList = null;
+	private static double wpX = 30, wpY = 30;
+	private static ArrayList<Double> waypointXs = new ArrayList<Double>();
+	private static ArrayList<Double> waypointYs = new ArrayList<Double>();
 	private static boolean newWaypoint = false;
 	private static boolean goingHome = false;
+	private static boolean isHome = false;
 	
 	// ArrayList of all the detected blocks
 	private static ArrayList<Block> blocks = new ArrayList<Block>();
-	private static int currentBlockIndex = 0;
+	private static Block currentBlock = null;
 	
 	// Contains the bounds of the object and whether or not it has been investigated
 	// private static Hashtable<Ellipse2D.Double, Boolean> objects = new Hashtable<Ellipse2D.Double, Boolean>();
@@ -39,29 +42,39 @@ public class Map {
 	 * Creates the map instance with the constructor of the robot mode 0-stacker 1-garbager
 	 * @param mode
 	 */
-	public Map(RobotMode mode){
-		if(mode.equals(RobotMode.STACKER)){
-			endZone.setSize(60,30);
-			endZone.setLocation(210, 150);
-		}
-		else{
-			endZone.setSize(60,120);
-			endZone.setLocation(30, 300);
-		}
+	public Map(int endzoneX1, int endzoneY1, int endzoneX2, int endzoneY2){
+		endZone.setSize(endzoneX2 - endzoneX1 ,endzoneY2 - endzoneY1);
+		endZone.setLocation(endzoneX1, endzoneY1);
 	}
 	
-	private static Block getClosestBlock(){
+	// Called when the next block to investigated must be found
+	private static Block getNextBlock(ArrayList<Block> tempBlocks){
 		double closestValue = 255;
 		int closestIndex = -1;
 		
-		for(int i=0; i < blocks.size(); i++){
-			if(blocks.get(i).distanceToBlock() < closestValue){
-				closestValue = blocks.get(i).distanceToBlock();
+		if(tempBlocks.size() == 0)
+			return null;
+		
+		for(int i=0; i < tempBlocks.size(); i++){
+			if(tempBlocks.get(i).distanceToBlock() < closestValue){
+				closestValue = tempBlocks.get(i).distanceToBlock();
 				closestIndex = i;
 			}
 		}
 		
+		if(tempBlocks.get(closestIndex).wasInvestigated()){
+			tempBlocks.remove(closestIndex);
+			return getNextBlock(tempBlocks);
+		}
 		return blocks.get(closestIndex);
+	}
+	
+	public static void cleanBlocks(){
+		for(int i=0; i<blocks.size(); i++){
+			if(blocks.get(i).getConfidence() < CONFIDENCE_THRESHOLD){
+				blocks.remove(i);
+			}
+		}
 	}
 	// Setters
 	/**
@@ -69,31 +82,54 @@ public class Map {
 	 * @param sytrofoam - whether or not the block is styrofoam
 	 */
 	public static void blockChecked(boolean sytrofoam){
-		blocks.get(currentBlockIndex).investigate();
+		currentBlock.investigate();
 		if(sytrofoam)
-			blocks.get(currentBlockIndex).setStyrofoam();
+			currentBlock.setStyrofoam();
 	}
 	
 	/**
-	 * Checks if the waypoint needs to be updated (new block to path to)
+	 * Checks if the waypoint needs to be updated
 	 */
-	public static void updateBlockWaypoint(){
-		double[] newWp = blocks.get(currentBlockIndex).getWaypoint();
+	public static void updateWaypoint(){
+		if(isHome)
+			return;
+		
+		double[] newWp = new double[2];
+		
+		if(!goingHome){
+			currentBlock = getNextBlock(blocks);
+			
+			if(currentBlock.equals(null))
+				return;
+			
+			newWp = currentBlock.getWaypoint();
+		}
+		else if(wpX != waypointXs.get(0) && wpY != waypointYs.get(0)){
+			newWp[0] = waypointXs.get(0);
+			newWp[1] = waypointYs.get(0);
+			
+			if(waypointXs.size() == 1)
+				isHome = true;
+			waypointXs.remove(0);
+			waypointYs.remove(0);
+		}
+		else
+			return;
+
 		
 		synchronized(lock){
 			wpX = newWp[0];
 			wpY = newWp[1];
 		}
 	}
-	public static void updatePointWaypoint(double wpX, double wpY){
-		ArrayList<Double> xVals = new ArrayList<Double>();
-		ArrayList<Double> yVals = new ArrayList<Double>();
-		
-		xVals.add(wpX);
-		yVals.add(wpY);
+	
+	public static void findPathToWaypoint(double wpX, double wpY){
+		waypointXs.add(wpX);
+		waypointYs.add(wpY);
 		
 		double[] pos = new double[3];
 		Odometer.getPosition(pos);
+		
 		double currX = pos[0];
 		double currY = pos[1];
 		boolean hasNewWp = false;
@@ -108,18 +144,9 @@ public class Map {
 				hasNewWp = true;
 				i = 0;
 			}
-			else if(i == blocks.size() - 1 && hasNewWp){
-				xVals.add(currX);
-				yVals.add(currY);
-				
-				wpX = currX;
-				wpY = currY;
-				currX = pos[0];
-				currY = pos[1];
-				
-				i = 0;
-			}
 		}
+		if(hasNewWp)
+			findPathToWaypoint(currX, currY);
 	}
 
 	/**
@@ -129,6 +156,7 @@ public class Map {
 	public static void addBlock(double[] xValues, double[] yValues){
 		Block newBlock = new Block(xValues, yValues);
 		double[] center = newBlock.getBlockCenter();
+		
 		for(int i=0; i < blocks.size(); i++){
 			if(blocks.get(i).containsPoint(center[0], center[1])){
 				blocks.get(i).mergeBlock(newBlock);
@@ -144,7 +172,7 @@ public class Map {
 	public static void getToEndZone(){
 		goingHome = true;
 	}
-
+	
 	// Getters
 	/**
 	 * Checks if a new waypoint is available for the navigator to navigate to.
@@ -168,11 +196,15 @@ public class Map {
 			newWaypoint = false;
 		}
 	}
+	/**
+	 * Returns the arrayList of all blocks
+	 * @return ArrayList<Block> blocks
+	 */
 	public static ArrayList<Block> getBlocks(){
 		return blocks;
 	}
 	public static Block getCurrentBlock(){
-		return blocks.get(currentBlockIndex);
+		return currentBlock;
 	}
 	public static int getBlockCount(){
 		return blocks.size();
