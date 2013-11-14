@@ -78,7 +78,8 @@ public class TwoWheeledRobot {
 	 * @param speed - movement speed
 	 */
 	public void setForwardSpeed(double speed) {
-		forwardSpeed = speed;
+		this.forwardSpeed = speed;
+		this.rotationSpeed = 0;
 		setSpeeds(forwardSpeed, rotationSpeed);
 	}
 	
@@ -87,11 +88,12 @@ public class TwoWheeledRobot {
 	 * @param speed - rotation speed
 	 */
 	public void setRotationSpeed(double speed) {
-		rotationSpeed = speed;
+		this.forwardSpeed = 0;
+		this.rotationSpeed = speed;
 		setSpeeds(forwardSpeed, rotationSpeed);
 	}
 	
-	private void setSpeeds(double forwardSpeed, double rotationalSpeed) {
+	public void setSpeeds(double forwardSpeed, double rotationalSpeed) {
 		double leftSpeed, rightSpeed;
 
 		this.forwardSpeed = forwardSpeed;
@@ -103,14 +105,18 @@ public class TwoWheeledRobot {
 				180.0 / (rightRadius * Math.PI);
 	
 		// set motor directions
-		if (leftSpeed > 0.0)
+		if(leftSpeed == 0.0)
+			leftMotor.stop();
+		else if (leftSpeed > 0.0)
 			leftMotor.forward();
 		else {
 			leftMotor.backward();
 			leftSpeed = -leftSpeed;
 		}
 		
-		if (rightSpeed > 0.0)
+		if(rightSpeed == 0.0)
+			rightMotor.stop();
+		else if (rightSpeed > 0.0)
 			rightMotor.forward();
 		else {
 			rightMotor.backward();

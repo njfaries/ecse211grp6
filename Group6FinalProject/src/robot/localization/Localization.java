@@ -16,7 +16,7 @@ import lejos.nxt.*;
 
 public class Localization {
         public enum StartCorner {BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT};
-		private final int US_OFFSET = 7;                                //Measured value (distance from centre)
+		private final int US_OFFSET = 8;                                //Measured value (distance from centre)
         private final double LS_OFFSET_ANGLE = 30;//29.74488;//Measured value (degrees from central axis)
         private final double LS_OFFSET_DIST = 7;                //Measured value (distance from centre of rotation)
         private final int WALL_DISTANCE = 40;                         //Arbitrary value. Not tested

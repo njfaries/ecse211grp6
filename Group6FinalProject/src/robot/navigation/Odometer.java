@@ -33,8 +33,8 @@ public class Odometer implements TimerListener {
 	 * @param corrector - The Odometry Correction being used
 	 */
 	public Odometer(TwoWheeledRobot robo, OdometryCorrection corrector) {
-		x = 60.0;
-		y = 60.0;
+		x = 30.0;
+		y = 30.0;
 		
 		theta = 0;
 		lock = new Object();
