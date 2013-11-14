@@ -1,72 +1,28 @@
-/*package robot.collection;
-import robot.navigation.Navigation;
-import lejos.nxt.Motor;
-import lejos.nxt.NXTRegulatedMotor;
-
-public class CollectionSystem extends Thread {	//why is this a thread with no run() method?
-	
-	private NXTRegulatedMotor cageMotor;
-	private NXTRegulatedMotor motor2;
-	private NXTRegulatedMotor motor3;
-	private NXTRegulatedMotor motor4;
-	private static final int elevate = 180; //experimentally determined number of degrees the motor must rotate to reach a 45 degree angle.
-	private static final int openClaw = -140; //experimentally determined number of degrees the motor must rotate to open the claw.
-	
-	
-	public CollectionSystem(NXTRegulatedMotor motor1, NXTRegulatedMotor motor2, NXTRegulatedMotor motor3, NXTRegulatedMotor motor4) {
-		cageMotor = motor1;
-		this.motor2 = motor2;
-		this.motor3 = motor3;
-		this.motor4 = motor4;
-	}
-	
-	//cage will start at what position?  This is important...
-	//Motor rotations will be defined to be positive when cage is moving up and negative when cage is moving down,
-	//and negative when opening the cage and positive when closing the cage.
-	
-	
-	//This design operates by first navigating the robot to an appropriate position.  This method is responsible to
-	//lower the cage over the block and loosen to allow the new block to come into the cage.
-	public void collectD1() {
-		//assume cage starts at an angle of 45 degrees
-		//positioning?
-			//robot.navigation.Navigation.turnTo(angle); --> rotate robot so cage is over the discovered block.
-		cageMotor.rotate(-elevate + openClaw);
-		cageMotor.rotate(-openClaw + elevate);
-		//...and that's all, folks.
-	}
-	
-	//This design uses tread system and assumes a feedback system from the cage to confirm that the brick has fallen into the cage
-	public void collectD2() {
-		//while (brickNotInCage) --> some method/sensor feedback here
-		//motors rotate
-	}
-	
-	public void releaseCage() {
-		cageMotor.rotate(-elevate + openClaw); //puts tower down on the ground.
-		//drive away...whichever direction is necessary.
-=======*/
 package robot.collection;
 
 import robot.navigation.Navigation;
+import robot.sensors.USGather;
+import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
+import lejos.nxt.UltrasonicSensor;
 
 /**
  * Positions the robot in such a way that it can collect the block then collects the block.
  * Also deals with releasing the stack after the cage is full.
  * 
  * @author Nathaniel
- * @version 1.0.0
+ * @version 1.1.0
  * @since
  */
 public class CollectionSystem extends Thread {
-	private static final int elevate = 180; //experimentally determined number of degrees the motor must rotate to reach a 45 degree angle.
-    private static final int openClaw = -140; //experimentally determined number of degrees the motor must rotate to open the claw.
+	private static final int elevate = -280; //experimentally determined number of degrees the motor must rotate to reach a 45 degree angle.
+    private static final int openClaw = 200; //experimentally determined number of degrees the motor must rotate to open the claw.
     
 	private NXTRegulatedMotor cageMotor;
 	private Navigation nav;
+	private USGather us;
 	
-	private boolean done = true, captureBlock = false, releaseStack = false;
+	private boolean done = true, captureBlock = false, releaseStack = false, hasBlock = false;
 	
 	/**
 	 * The collection system requires access to the motor controlling the cage in order to collect the block. It also
@@ -74,16 +30,17 @@ public class CollectionSystem extends Thread {
 	 * @param cageMotor - The motor controlling the cage/claw
 	 * @param nav - The Navigation class being used
 	 */
-	public CollectionSystem(NXTRegulatedMotor cageMotor, Navigation nav) {
+	public CollectionSystem(NXTRegulatedMotor cageMotor, Navigation nav, USGather us) {
 		this.cageMotor = cageMotor;
 		this.nav = nav;
+		this.us = us;
 		
 		this.start();
 	}
 	
     //cage will start at what position?  This is important...
-    //Motor rotations will be defined to be positive when cage is moving up and negative when cage is moving down,
-    //and negative when opening the cage and positive when closing the cage.
+    //Motor rotations will be defined to be positive when cage is moving down and negative when cage is moving up,
+    //and negative when closing the cage and positive when opening the cage.
 	
 	@Override
 	public void run(){
@@ -108,14 +65,19 @@ public class CollectionSystem extends Thread {
 	private void collect(){
 		// If robot needs to be oriented
 		// orientRobot();
-		
+		if (!hasBlock) {
+			cageMotor.rotate(-elevate + openClaw);
+			nav.moveStraight(10);
+			while(!nav.isDone());
+			nav.reverse();
+			while(us.getDistance() < 4) { try {Thread.sleep(50);} catch(InterruptedException e) {} }
+			nav.stop();
+		}
 		captureBlock = false;
 		cageMotor.rotate(-elevate + openClaw);
+		Motor.A.rotate(360, true);
+		Motor.B.rotate(360, false);
         cageMotor.rotate(-openClaw + elevate);
-	}
-	// Orients the robot
-	private void orientRobot(){
-		// Orients the robot
 	}
 	// Releases all the cages contents
 	private void release(){
@@ -150,5 +112,22 @@ public class CollectionSystem extends Thread {
 	 */
 	public boolean isDone(){
 		return done;
+	}
+	
+	/**
+	 * Lifts the cage (will be called on startup and after identification)
+	 */
+	public void raiseCage(){
+		done = false;
+		cageMotor.rotate(-elevate);
+		done = true;
+	}
+	/**
+	 * Lowers the cage (will be called before identification)
+	 */
+	public void lowerCage(){
+		done = false;
+		cageMotor.rotate(elevate);
+		done = true;
 	}
 }
