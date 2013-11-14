@@ -29,11 +29,12 @@ public class RobotController extends Thread {
 		STACKER, GARBAGE
 	};
 
-	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST;
-	private static int endX1, endY1, endX2, endY2;
+	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH,
+			ODOCORRECT_SENS_DIST;
 
 	private double scanStart = 0;
 	private int scanAngle = 90, scanDirection = 0;
+	private boolean firstScan = true;
 
 	private NXTRegulatedMotor leftMotor;
 	private NXTRegulatedMotor rightMotor;
@@ -64,7 +65,7 @@ public class RobotController extends Thread {
 	 * private BluetoothConnection bt; private Transmission transmission;
 	 */
 
-	private FunctionType function = FunctionType.IDLE;
+	private FunctionType function = FunctionType.LOCALIZE;
 	private RobotMode mode = null;
 
 	private double[] pos = new double[3];
@@ -78,9 +79,7 @@ public class RobotController extends Thread {
 	 * subtasks like localization, searching and collection.
 	 */
 	public RobotController() {
-		receive();
-		
-		new Map(endX1, endY1, endX2, endY2);
+		new Map(mode);
 		new LCDInfo();
 
 		us = new USGather(usFront);
@@ -88,6 +87,7 @@ public class RobotController extends Thread {
 
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation(robo);
+		//need to construct localization with transmission.startingCorner
 		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
 		
 		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
@@ -96,6 +96,8 @@ public class RobotController extends Thread {
 		id = new Identify(cg, us, nav);
 
 		collection = new CollectionSystem(clawMotor, nav);
+
+		receive();
 
 		this.start();
 	}
@@ -135,17 +137,24 @@ public class RobotController extends Thread {
 
 	// Initiates the localization of the robot
 	private void localize() {
-		/*
-		 * loc = new Localization(usFront, csBack, csBack, csBack,
-		 * transmission.startingCorner, robo); loc.localize();
-		 */
+		
+		loc.localize();
 		function = FunctionType.SEARCH; // Once finished localizing robot goes
 										// immediately to search mode.
 	}
 
 	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle, int direction) {
-		nav.turnTo(fromAngle, direction);
+		
+		if(!firstScan) {
+			Odometer.getPosition(pos);
+			scanStart = pos[2];
+			scanAngle = (int)pos[2] + 357;
+			direction = 1;
+		}
+		
+		//0 as to turn to with smallest angle before starting the scan
+		nav.turnTo(fromAngle, 0);
 		while (!nav.isDone()) {
 			try {
 				Thread.sleep(400);
@@ -168,6 +177,8 @@ public class RobotController extends Thread {
 
 			function = FunctionType.BLOCK_NAVIGATE;
 		}
+		//after first execution of search change search to angles
+		if(firstScan) firstScan = false;
 	}
 
 	// Handles navigating to a point (allows the scanner to continue in case an
