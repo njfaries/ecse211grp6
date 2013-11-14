@@ -69,14 +69,14 @@ public class Localization {
         	double angleA = 0; double angleB = 0;
                 double[] array = new double[3];                        //Just to make getPosition happy...
                 boolean direction = true;
-                while (usGather.getDistance() < (WALL_DISTANCE - US_OFFSET)) {                                //If starts facing a wall it will rotate until
+                while (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //If starts facing a wall it will rotate until
                         rotate(direction);                                                                                                                //it is no longer facing wall.
                 }
                 while(true) {        //while still localizing, may put bool variable here later.
                         rotate(direction);
                         LCD.clear();
-                        LCD.drawInt((int) usGather.getDistance(), 13, 0);
-                        if (usGather.getDistance() < (WALL_DISTANCE - US_OFFSET)) {                                //Once the rising edge is detected...
+                        LCD.drawInt((int) usGather.getRawDistance(), 13, 0);
+                        if (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
                                 LCD.drawString("In...", 0, 0);
                         		Motor.A.setSpeed(0);                                                                                                                //stop the motors and get the theta value
                                 Motor.B.setSpeed(0);                                                                                                                //from the odometer

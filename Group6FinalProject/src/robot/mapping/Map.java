@@ -103,6 +103,8 @@ public class Map {
 				return;
 			
 			newWp = currentBlock.getWaypoint();
+			
+			newWaypoint = true;
 		}
 		else if(wpX != waypointXs.get(0) && wpY != waypointYs.get(0)){
 			newWp[0] = waypointXs.get(0);
@@ -112,9 +114,12 @@ public class Map {
 				isHome = true;
 			waypointXs.remove(0);
 			waypointYs.remove(0);
+			newWaypoint = true;
 		}
-		else
+		else{
+			newWaypoint = false;
 			return;
+		}
 
 		
 		synchronized(lock){

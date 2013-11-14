@@ -16,6 +16,7 @@ import lejos.nxt.UltrasonicSensor;
 public class USGather implements TimerListener {
 	
 	private int distance;
+	private int rawDistance;
 	private boolean filter;
 	
 	private final int SEN_TO_CENTER = 7;
@@ -88,6 +89,7 @@ public class USGather implements TimerListener {
 				}
 			
 			}	
+		rawDistance = distance + 2 * SEN_TO_CENTER;
 		return filterWall(distance + 2 * SEN_TO_CENTER);
 	}
 	
@@ -118,6 +120,12 @@ public class USGather implements TimerListener {
 		synchronized(lock){
 			// Should return the distance from the center of the robot
 			return distance;
+		}
+	}
+	public double getRawDistance(){
+		synchronized(lock){
+			// Should return the distance from the center of the robot
+			return rawDistance;
 		}
 	}
 }

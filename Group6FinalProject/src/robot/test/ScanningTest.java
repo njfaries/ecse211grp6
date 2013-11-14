@@ -110,6 +110,18 @@ public class ScanningTest extends Thread{
 			else
 				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * (i-4), 4);
 		}
+		
+		Map.updateWaypoint();
+		
+		if(Map.hasNewWaypoint()){
+			double[] waypoint = new double[2];
+			Map.getWaypoint(waypoint);
+			nav.travelTo(waypoint[0], waypoint[1]);
+			while(!nav.isDone()){
+			 	try{Thread.sleep(500);} catch(InterruptedException e){ }
+			}
+		}
+		
 		function = FunctionType.IDLE;
 	}
 	

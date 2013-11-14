@@ -58,7 +58,31 @@ public class Navigation implements TimerListener {
 		if(destinationT == -1)
 			dT = getAngle(dX, dY) - pos[2];
 		
-		// Checks if rotation is necessary
+		if(Math.abs(dT) > ANGLE_ERROR_THRESH && !turning){
+			turnBy(dT);
+			turning = true;
+		}
+		else if(Math.abs(dT) < ANGLE_ERROR_THRESH){
+			LCD.drawString("STOP1", 0, 4);
+			stop();
+			turning = false;
+			turnDirection = 0;
+		}
+		// Checks if traveling is necessary
+		if((dX > DIST_ERROR_THRESH || dY > DIST_ERROR_THRESH) && !turning && !traveling){
+			LCD.drawString("MOVE", 0, 4);
+			travel();
+			traveling = true;
+		}
+		else if(dX < DIST_ERROR_THRESH && dY < DIST_ERROR_THRESH && !turning){
+			LCD.drawString("STOP2", 0, 4);
+			stop();
+			traveling = false;
+		}
+		
+		LCD.drawString(turning + " " + traveling, 0, 5);
+		LCD.drawString(dT + " " + dX + " " + dY, 0, 6);
+/*		// Checks if rotation is necessary
 		if(Math.abs(dT) > ANGLE_ERROR_THRESH)
 			turning = true;
 		else{
@@ -77,7 +101,7 @@ public class Navigation implements TimerListener {
 		else if(traveling)
 			travel();
 		else
-			stop();
+			stop();*/
 		
 	}
 	// Travel to a point (this is called after the robot is oriented so only forward movement is necessary)
@@ -132,7 +156,6 @@ public class Navigation implements TimerListener {
 		destinationT = -1;
 		turnDirection = 0;
 		
-		traveling = true;
 		synchronized(lock){
 			done = false;
 		}
@@ -150,7 +173,6 @@ public class Navigation implements TimerListener {
 		destinationT = theta;
 		turnDirection = direction;
 		
-		turning = true;
 		synchronized(lock){
 			done = false;
 		}

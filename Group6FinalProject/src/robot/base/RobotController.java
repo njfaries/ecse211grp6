@@ -7,8 +7,11 @@ import robot.mapping.Map;
 import robot.mapping.Scan;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.Motor;
+import lejos.nxt.MotorPort;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
+import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
 
 /**
@@ -36,19 +39,18 @@ public class RobotController extends Thread {
 	private int scanAngle = 90, scanDirection = 0;
 	private boolean firstScan = true;
 
-	private NXTRegulatedMotor leftMotor;
-	private NXTRegulatedMotor rightMotor;
-	private NXTRegulatedMotor clawMotor;
+	private static NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
+	private static NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
+	private static NXTRegulatedMotor cageMotor = new NXTRegulatedMotor(MotorPort.C);
 
-	private UltrasonicSensor usFront;
+	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
 
-	private ColorSensor csFront;
-	private ColorSensor csBack;
-	private ColorSensor csBlockReader;
+	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
+	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
+	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
 
 	private CollectionSystem collection;
 
-	private Odometer odo;
 	private OdometryCorrection corrector;
 
 	private Navigation nav;
@@ -66,7 +68,6 @@ public class RobotController extends Thread {
 	 */
 
 	private FunctionType function = FunctionType.LOCALIZE;
-	private RobotMode mode = null;
 
 	private double[] pos = new double[3];
 
@@ -79,23 +80,24 @@ public class RobotController extends Thread {
 	 * subtasks like localization, searching and collection.
 	 */
 	public RobotController() {
-		new Map(mode);
+		new Map(150,150,180,180);
 		new LCDInfo();
 
 		us = new USGather(usFront);
-		cg = new ColorGather(csFront, csBack, csBlockReader);
-
+		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation(robo);
+		
 		//need to construct localization with transmission.startingCorner
 		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
 		
-		corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		odo = new Odometer(robo , corrector);
+		//corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
+		new Odometer(robo , corrector);
 
 		id = new Identify(cg, us, nav);
 
-		collection = new CollectionSystem(clawMotor, nav);
+		collection = new CollectionSystem(cageMotor, nav);
 
 		receive();
 
@@ -137,7 +139,7 @@ public class RobotController extends Thread {
 
 	// Initiates the localization of the robot
 	private void localize() {
-		
+		cageMotor.rotate(-330);
 		loc.localize();
 		function = FunctionType.SEARCH; // Once finished localizing robot goes
 										// immediately to search mode.
@@ -184,7 +186,7 @@ public class RobotController extends Thread {
 	// Handles navigating to a point (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToBlock() {
-		Odometer.runCorrection(true);
+		//Odometer.runCorrection(true);
 		while (!nav.isDone()) {
 			// Keep the ultrasonic sensor scanning to detect obstacles
 			// If an obstacle appears (probably the other player)

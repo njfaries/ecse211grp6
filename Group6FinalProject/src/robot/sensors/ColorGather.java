@@ -33,9 +33,7 @@ public class ColorGather implements TimerListener {
 	 */
 	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader) {
 		this.csLeft = csLeft;
-		csLeft.setFloodlight(Color.RED);
 		this.csRight = csRight;
-		csRight.setFloodlight(Color.RED);
 		this.csBlockReader = csBlockReader;
 		
 		lightReadingsLeft = new double[7];
@@ -45,12 +43,17 @@ public class ColorGather implements TimerListener {
 		readingNum = -1;
 		isOnLine = false;
 		
-		Timer timer = new Timer(20, this);
+
+		
+		Timer timer = new Timer(50, this);
 		timer.start();
 	}
 	
 	@Override
 	public void timedOut() {
+		csLeft.setFloodlight(Color.RED);
+		csRight.setFloodlight(Color.RED);
+		
 		// Gets light readings;
 		currentColorLeft = csLeft.getRawLightValue();
 		currentColorRight = csRight.getRawLightValue();
