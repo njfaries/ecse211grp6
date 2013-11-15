@@ -3,7 +3,7 @@ package robot.mapping;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 
-import robot.base.RobotController.RobotMode;
+import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 /**
@@ -24,7 +24,6 @@ public class Map {
 	private static ArrayList<Double> waypointXs = new ArrayList<Double>();
 	private static ArrayList<Double> waypointYs = new ArrayList<Double>();
 	private static boolean newWaypoint = false;
-	private static boolean goingHome = false;
 	private static boolean isHome = false;
 	
 	// ArrayList of all the detected blocks
@@ -34,17 +33,33 @@ public class Map {
 	// Contains the bounds of the object and whether or not it has been investigated
 	// private static Hashtable<Ellipse2D.Double, Boolean> objects = new Hashtable<Ellipse2D.Double, Boolean>();
 
+	private static int[] endPoints;
+	private static int[] avoidPoints;
 	private Rectangle endZone = new Rectangle();
+	private Rectangle avoidZone = new Rectangle();
 	
 	private static Object lock = new Object();
 	
+	private static double[] pos = new double[3];
 	/**
 	 * Creates the map instance with the constructor of the robot mode 0-stacker 1-garbager
 	 * @param mode
 	 */
-	public Map(int endzoneX1, int endzoneY1, int endzoneX2, int endzoneY2){
-		endZone.setSize(endzoneX2 - endzoneX1 ,endzoneY2 - endzoneY1);
-		endZone.setLocation(endzoneX1, endzoneY1);
+	public Map(/*PlayerRole role,*/ int[] redZone, int[] greenZone){
+		if(true){
+			endPoints = greenZone;
+			avoidPoints = redZone;
+		}
+		else{
+			endPoints = redZone;
+			avoidPoints = greenZone;
+		}
+		
+		endZone.setSize(endPoints[2] - endPoints[0] ,endPoints[3] - endPoints[1]);
+		endZone.setLocation(endPoints[0] + 30, endPoints[1] + 30);
+		
+		avoidZone.setSize(avoidPoints[2] - avoidPoints[0] ,avoidPoints[3] - avoidPoints[1]);
+		avoidZone.setLocation(avoidPoints[0] + 30, avoidPoints[1] + 30);
 	}
 	
 	// Called when the next block to investigated must be found
@@ -70,11 +85,14 @@ public class Map {
 	}
 	
 	public static void cleanBlocks(){
+		LCD.drawString(blocks.size() + "",0,7);
 		for(int i=0; i<blocks.size(); i++){
 			if(blocks.get(i).getConfidence() < CONFIDENCE_THRESHOLD){
 				blocks.remove(i);
 			}
 		}
+		LCD.drawString("                 ",0,7);
+		LCD.drawString(blocks.size() + "",0,7);
 	}
 	// Setters
 	/**
@@ -89,31 +107,35 @@ public class Map {
 	
 	/**
 	 * Checks if the waypoint needs to be updated
+	 * @param goHome - true: update waypoint to get to end / false: update waypoint to get to nearest block
 	 */
-	public static void updateWaypoint(){
-		if(isHome)
-			return;
-		
+	public static void updateWaypoint(boolean goHome){		
 		double[] newWp = new double[2];
 		
-		if(!goingHome){
-			currentBlock = getNextBlock(blocks);
-			
-			if(currentBlock.equals(null))
-				return;
-			
-			newWp = currentBlock.getWaypoint();
-			
-			newWaypoint = true;
+		if(waypointXs.size() == 0){
+			if(!goHome){
+				Block nextBlock = getNextBlock(blocks);
+				if(nextBlock == null){
+					newWaypoint = false;
+					return;
+				}
+				double[] center = nextBlock.getBlockCenter();
+				calculateWaypoints(center[0], center[1]);
+			}
+			else{
+				if(isHome){
+					newWaypoint = false;
+					return;
+				}
+				findPathToWaypoint(endPoints[2] - endPoints[0], endPoints[3] - endPoints[1]);
+			}
 		}
-		else if(wpX != waypointXs.get(0) && wpY != waypointYs.get(0)){
+		
+		
+		if(wpX != waypointXs.get(0) && wpY != waypointYs.get(0)){
 			newWp[0] = waypointXs.get(0);
 			newWp[1] = waypointYs.get(0);
 			
-			if(waypointXs.size() == 1)
-				isHome = true;
-			waypointXs.remove(0);
-			waypointYs.remove(0);
 			newWaypoint = true;
 		}
 		else{
@@ -121,14 +143,31 @@ public class Map {
 			return;
 		}
 
-		
 		synchronized(lock){
 			wpX = newWp[0];
 			wpY = newWp[1];
 		}
 	}
-	
-	public static void findPathToWaypoint(double wpX, double wpY){
+	public static void waypointReached(){
+		if(waypointXs.size() == 0)
+			return;
+		waypointXs.remove(0);
+		waypointYs.remove(0);
+	}
+	// Calculates the new waypionts to a block (waypoint sent to the nearest point on the exterior of the block)
+	private static void calculateWaypoints(double wpX, double wpY){
+		double[] waypoint = new double[]{wpX, wpY};
+		Odometer.getPosition(pos);		
+		for(int i=0; i < blocks.size(); i++){
+			if(blocks.get(i).containsPoint(wpX, wpY)){
+				waypoint = blocks.get(i).getExteriorPoint(pos[2], pos[0], pos[1], wpX, wpY);
+				break;
+			}
+		}
+		findPathToWaypoint(waypoint[0], waypoint[1]);
+	}
+	// Creates an array of waypoints that contain the path to the final destination
+	private static void findPathToWaypoint(double wpX, double wpY){
 		waypointXs.add(wpX);
 		waypointYs.add(wpY);
 		
@@ -169,13 +208,6 @@ public class Map {
 			}
 		}
 		blocks.add(new Block(xValues, yValues));
-	}
-
-	/**
-	 * Tells the map to find a path to get to the end zone rather than to a block
-	 */
-	public static void getToEndZone(){
-		goingHome = true;
 	}
 	
 	// Getters

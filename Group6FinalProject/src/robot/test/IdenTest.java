@@ -6,6 +6,7 @@ import robot.collection.*;
 import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.LCD;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
@@ -19,7 +20,7 @@ import lejos.nxt.UltrasonicSensor;
  * @author Andreas
  * @version 1.0
  */
-public class CollectionTest extends Thread{
+public class IdenTest extends Thread{
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
 		
 	private NXTRegulatedMotor leftMotor = Motor.A;
@@ -36,22 +37,25 @@ public class CollectionTest extends Thread{
 	private USGather us;
 	private ColorGather cg;
 	private CollectionSystem collection;
+	private Identify id;
 	private Navigation2 nav;
 	
-	private static FunctionType function = FunctionType.COLLECT;
+	private static FunctionType function = FunctionType.IDENTIFY;
 	
 	int distanceIndex = 0;
 	
 	public static void main(String[] args) {
-		new CollectionTest();
+		new IdenTest();
 	}
-	public CollectionTest(){		
+	public IdenTest(){		
 		us = new USGather(usFront);
 		cg = new ColorGather(csLeft, csRight, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo, null);
 		nav = new Navigation2(robo);
+		
+		id = new Identify(cg, us, nav);
 		
 		collection = new CollectionSystem(clawMotor, nav);
 		collection.rotateCage(-330);
@@ -62,8 +66,8 @@ public class CollectionTest extends Thread{
 	// Runs all the control code (calling localization, navigation, identification, etc)
 	public void run(){
 		while(true){
-			if(function == FunctionType.COLLECT)
-				collect();			
+			if(function == FunctionType.IDENTIFY)
+				identify();			
 			
 			try{
 				Thread.sleep(50);
@@ -74,21 +78,17 @@ public class CollectionTest extends Thread{
 		}
 	}
 	// Collects said block
-	private void collect(){
-		collection.lowerCage();
-		collection.openCage();
+	private void identify(){		
+		// if the block is blue collect it
 		
-		nav.move();
-		try { Thread.sleep(2000); } 
-		catch (InterruptedException e) { }
-		nav.stop();
+		if (id.isBlue()) {
+			LCD.drawString("grabbing", 0,7);
+		}
 		
-		try { Thread.sleep(250); } 
-		catch (InterruptedException e) { }
-		
-		collection.closeCage();
-		collection.raiseCage();
-
+		// else the robot has backed up and does a search
+		else {
+			LCD.drawString("nothing", 0,7);
+		}
 		function = FunctionType.IDLE;
 	}
 }

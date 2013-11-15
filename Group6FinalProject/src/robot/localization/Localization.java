@@ -2,7 +2,6 @@ package robot.localization;
 import robot.sensors.ColorGather;
 import robot.sensors.USGather;
 import robot.navigation.*;
-//import src.bluetooth.StartCorner;
 import lejos.nxt.*;
 
 /**
@@ -17,7 +16,7 @@ import lejos.nxt.*;
 public class Localization {
         public enum StartCorner {BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT};
 		private final int US_OFFSET = 8;                                //Measured value (distance from centre)
-        private final double LS_OFFSET_ANGLE = 30;//29.74488;//Measured value (degrees from central axis)
+        private final double LS_OFFSET_ANGLE = 29.74488;//Measured value (degrees from central axis)
         private final double LS_OFFSET_DIST = 7;                //Measured value (distance from centre of rotation)
         private final int WALL_DISTANCE = 40;                         //Arbitrary value. Not tested
         private final int ROTATION_SPEED = 300;                 //Needs to be tested
@@ -25,7 +24,7 @@ public class Localization {
         private USGather usGather;
         private ColorGather colorGather;
         private StartCorner corner;
-        private int angleAdjustment;
+        private int angleAdjustment = 0;
         
         
         public Localization(USGather us, ColorGather cg, StartCorner corner, Navigation nav) {
@@ -37,18 +36,18 @@ public class Localization {
         }
         
         public void localize() {
-                switch(corner) {
+        	switch(corner) {
                 case BOTTOM_LEFT:         angleAdjustment = 0;
                 case BOTTOM_RIGHT:         angleAdjustment = 270;
                 case TOP_RIGHT:         angleAdjustment = 180;
                 case TOP_LEFT:                 angleAdjustment = 90;
                 default:                         angleAdjustment = 0;
-                } 
-                usLocalization();
+        	} 
+                //usLocalization();
                 LCD.drawString("us done", 0, 3);
                 //nav.travelTo(10, 10);
                 lightLocalization();
-                LCD.drawString("li done", 0, 4);
+                
                 nav.travelTo(30,30);
                 while(!nav.isDone()){
                 	try { Thread.sleep(500); }  catch (InterruptedException e) {}
@@ -78,8 +77,8 @@ public class Localization {
                         LCD.drawInt((int) usGather.getRawDistance(), 13, 0);
                         if (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
                                 LCD.drawString("In...", 0, 0);
-                        		Motor.A.setSpeed(0);                                                                                                                //stop the motors and get the theta value
-                                Motor.B.setSpeed(0);                                                                                                                //from the odometer
+                        		Motor.A.stop();                                                                                                                //stop the motors and get the theta value
+                                Motor.B.stop();                                                                                                                //from the odometer
                                 Odometer.getPosition(array);                                                                                 //Need to be able to get theta more easily...
                                 LCD.drawInt((int) array[2], 0, 5);
                                 if (angleA == 0) {                                                                                                        //If this is the first time it's stopped (angleA hasn't
@@ -117,8 +116,8 @@ public class Localization {
                 
                 boolean isOnLine = false;
                 
-                nav.turnTo(315, 1);
-                while(!nav.isDone()) {
+                nav.turnTo(359, 1);
+                while(counter < 4) {
                         if (colorGather.isOnLine(0) && !isOnLine) {				//0 = left sensor on robot
                                 Odometer.getPosition(array);
                                 angles[counter] = array[2] + LS_OFFSET_ANGLE/2 - 180;	//store the current angle and
@@ -137,6 +136,7 @@ public class Localization {
                         }
                         try { Thread.sleep(50); } catch (InterruptedException e) {}
                 }
+                nav.stop();
                 Odometer.setPosition(calculateLS(angles), new boolean[] {true, true, false});
         }
         

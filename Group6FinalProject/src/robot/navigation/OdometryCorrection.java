@@ -10,9 +10,9 @@ import robot.sensors.ColorGather;
  * @version 1.0
  */
 public class OdometryCorrection {
-	private static double WHEEL_RADIUS;
-	private static double SENSOR_WIDTH;
-	private static double SENSOR_DISTANCE;
+	private static double WHEEL_RADIUS = 2.125;
+	private static double SENSOR_WIDTH = 4;
+	private static double SENSOR_DISTANCE = 7;
 	
 	private ColorGather cg;
 	
@@ -31,11 +31,7 @@ public class OdometryCorrection {
 	 * @param sensorWidth - The distance between the center of the two light sensor (constant)
 	 * @param sensorDist - The distance from the two light sensors to the robot's axis of rotation
 	 */
-	public OdometryCorrection(ColorGather colorGather, double wheelRad, double sensorWidth, double sensorDist){
-		WHEEL_RADIUS = wheelRad;
-		SENSOR_WIDTH = sensorWidth;
-		SENSOR_DISTANCE = sensorDist;
-		
+	public OdometryCorrection(ColorGather colorGather){		
 		this.cg = colorGather;
 		updateX = false;
 		updateY = false;

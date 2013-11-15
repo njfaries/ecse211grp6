@@ -14,7 +14,7 @@ import lejos.util.TimerListener;
 public class Navigation implements TimerListener {
 	private final double FORWARD_SPEED = 10;
 	private final double ROTATION_SPEED = 25;
-	private final double ANGLE_ERROR_THRESH = 1;
+	private final double ANGLE_ERROR_THRESH = 5;
 	private final double DIST_ERROR_THRESH = 1.5;
 	
 	private TwoWheeledRobot robo;
@@ -27,6 +27,8 @@ public class Navigation implements TimerListener {
 	private boolean done = true;
 	private boolean traveling = false;
 	private boolean turning = false;
+	private boolean onlyTurning = false;
+	
 	
 	private Object lock = new Object();
 	
@@ -39,13 +41,13 @@ public class Navigation implements TimerListener {
 	 */
 	public Navigation(TwoWheeledRobot robo) {
 		this.robo = robo;
-		
-		Timer timer = new Timer(20, this);
-		timer.start();
 	}
 	
 	@Override
 	public void timedOut() {
+		LCD.drawString(done + "", 0, 0);
+		LCD.drawString("                               ", 0, 2);
+		
 		if(done)
 			return;
 		
@@ -60,36 +62,38 @@ public class Navigation implements TimerListener {
 		
 		// Sets the robot to turn (first time through the method)
 		if(Math.abs(dT) > ANGLE_ERROR_THRESH && !traveling && !turning){
-			LCD.drawString("TURN1", 0, 5);
+			LCD.drawString("TURN1", 0, 2);
 			turnBy(dT);
 			turning = true;
 		} 
 		// Called for correcting the angle while the robot is moving.
 		else if(Math.abs(dT) > (5 * ANGLE_ERROR_THRESH) && (dX > DIST_ERROR_THRESH * 2 || dY > DIST_ERROR_THRESH * 2) && traveling && !turning){
-			LCD.drawString("TURN2", 0, 5);
-			stop();
+			LCD.drawString("TURN2", 0, 2);
+			//stop();
 			turnBy(dT);
 			turning = true;
 			traveling = false;
 		}
 		// If angle is within threshold and it is turning but not moving, stop turning
 		else if(Math.abs(dT) < ANGLE_ERROR_THRESH && !traveling && turning ){
-			LCD.drawString("STOP1", 0, 5);
-			turnBy(0);
+			LCD.drawString("STOP1", 0, 2);
+			robo.setRotationSpeed(1);
 			turning = false;
 			turnDirection = 0;
+			if(onlyTurning)
+				done = true;
 		} 
 		
 		// If the robot not moving but is far from a point, start moving forward (will be called after robot turns)
-		if((dX > DIST_ERROR_THRESH || dY > DIST_ERROR_THRESH) && !traveling && !turning){
-			LCD.drawString("MOVE2", 0, 5);
+		if((dX > DIST_ERROR_THRESH || dY > DIST_ERROR_THRESH) && !traveling && !turning && !onlyTurning){
+			LCD.drawString("MOVE2", 0, 2);
 			travel();
 			traveling = true;
 		}
 		// If the robot is moving, not turning, and is within a distance from it's destination, stop moving
-		else if(dX < DIST_ERROR_THRESH && dY < DIST_ERROR_THRESH && traveling && !turning){
-			LCD.drawString("STOP2", 0, 5);
-			stop();
+		else if(dX < DIST_ERROR_THRESH && dY < DIST_ERROR_THRESH && traveling && !turning  && !onlyTurning){
+			//LCD.drawString("STOP2", 0, 5);
+			//stop();
 			traveling = false;
 		}
 		
@@ -117,14 +121,12 @@ public class Navigation implements TimerListener {
 				turnDirection = 1;
 			else if((theta > 180 && theta < 360) || (theta >= -180 && theta < 0))
 				turnDirection = 2;
-			else{
-				robo.setRotationSpeed(0);
+			else
 				return;
-			}
 
 			turnBy(theta);
 		}
-		
+				
 	}
 	// Calculate an angle by observing the distances in X and Y needed to be travelled by
 	private double getAngle(double dX, double dY){
@@ -144,19 +146,19 @@ public class Navigation implements TimerListener {
 	 * @param y - The destination y value
 	 */
 	public void travelTo(double x, double y) {
-		LCD.drawString("Travel", 0,4);
+		LCD.drawString("Travel", 0,1);
 		
 		destinationX = x;
 		destinationY = y;
 		destinationT = -1;
 		turnDirection = 0;
 		
+		onlyTurning = false;
+		
 		traveling = false;
 		turning = false;
 		
-		synchronized(lock){
-			done = false;
-		}
+		done = false;
 	}
 		
 	/**
@@ -165,18 +167,19 @@ public class Navigation implements TimerListener {
 	 * @param direction - The direction to turn 0:don't care; 1:clockwise; 2:counter clockwise
 	 */
 	public void turnTo(double theta, int direction) {
+		LCD.drawString("Turn", 0,1);
 		Odometer.getPosition(pos);
 		destinationX = pos[0];
 		destinationY = pos[1];
 		destinationT = theta;
 		turnDirection = direction;
 		
+		onlyTurning = true;
+		
 		traveling = false;
 		turning = false;
 		
-		synchronized(lock){
-			done = false;
-		}
+		done = false;
 	}
 	
 	/**
@@ -189,7 +192,6 @@ public class Navigation implements TimerListener {
 		turning = false;
 		
 		robo.setForwardSpeed(0);
-		robo.setRotationSpeed(0);
 	}
 	
 	/**
@@ -225,8 +227,6 @@ public class Navigation implements TimerListener {
 	 * @return boolean: done
 	 */
 	public boolean isDone(){
-		synchronized(lock){
-			return done;
-		}
+		return done;
 	}
 }

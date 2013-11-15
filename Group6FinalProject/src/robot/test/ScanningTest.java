@@ -49,15 +49,15 @@ public class ScanningTest extends Thread{
 	 * This involves running the Scan() while rotating using Navigation.turnTo(x,y)
 	 */
 	public ScanningTest(){
-		new Map(150,150,180,180);
+		new Map(/*PlayerRole.BUILDER,*/ new int[]{150,150,180,180}, new int[]{-1,-1,0,0});
 		
 		CollectionSystem collect = new CollectionSystem(cageMotor, nav);
-		collect.raiseCage();
+		collect.rotateCage(-300);
 		
 		us = new USGather(usFront);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		nav = new Navigation(robo);
+		nav = new Navigation2(robo);
 		new Odometer(robo, null);
 		
 		//new LCDInfo();
@@ -77,10 +77,12 @@ public class ScanningTest extends Thread{
 	}
 	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle){
+		LCD.drawString("Searching",0,0);
 		nav.turnTo(fromAngle, 0);
 
 		while(!nav.isDone()){
 			try{Thread.sleep(400);} catch(InterruptedException e){ }
+			
 		}
 		
 		nav.turnTo(toAngle, 1);
@@ -111,12 +113,12 @@ public class ScanningTest extends Thread{
 				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * (i-4), 4);
 		}
 		
-		Map.updateWaypoint();
+		Map.updateWaypoint(false);
 		
 		if(Map.hasNewWaypoint()){
 			double[] waypoint = new double[2];
 			Map.getWaypoint(waypoint);
-			nav.travelTo(waypoint[0], waypoint[1]);
+			nav.travelTo(waypoint[0] - 20, waypoint[1] - 20);
 			while(!nav.isDone()){
 			 	try{Thread.sleep(500);} catch(InterruptedException e){ }
 			}

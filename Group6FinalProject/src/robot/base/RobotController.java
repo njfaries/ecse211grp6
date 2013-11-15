@@ -7,6 +7,8 @@ import robot.mapping.Map;
 import robot.mapping.Scan;
 import robot.navigation.*;
 import robot.sensors.*;
+import lejos.nxt.Button;
+import lejos.nxt.LCD;
 import lejos.nxt.Motor;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTRegulatedMotor;
@@ -25,7 +27,7 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class RobotController extends Thread {
 	public enum FunctionType {
-		IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE
+		IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, POINT_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE
 	};
 
 	public enum RobotMode {
@@ -53,7 +55,7 @@ public class RobotController extends Thread {
 
 	private OdometryCorrection corrector;
 
-	private Navigation nav;
+	private Navigation2 nav;
 	private TwoWheeledRobot robo;
 
 	private USGather us;
@@ -63,10 +65,14 @@ public class RobotController extends Thread {
 
 	private Identify id;
 
-	/*
-	 * private BluetoothConnection bt; private Transmission transmission;
-	 */
+/*	StartCorner corner;
+	PlayerRole role;*/
+	int[] greenZone;
+	int[] redZone;
 
+	private int blocksCollected = 0;
+	private int maxBlocks = 2;
+	
 	private FunctionType function = FunctionType.LOCALIZE;
 
 	private double[] pos = new double[3];
@@ -80,14 +86,16 @@ public class RobotController extends Thread {
 	 * subtasks like localization, searching and collection.
 	 */
 	public RobotController() {
-		new Map(150,150,180,180);
+		receive();
+		
+		new Map(/*role,*/ greenZone, redZone);
 		new LCDInfo();
 
 		us = new USGather(usFront);
 		cg = new ColorGather(csLeft, csRight, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		nav = new Navigation(robo);
+		nav = new Navigation2(robo);
 		
 		//need to construct localization with transmission.startingCorner
 		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
@@ -98,8 +106,6 @@ public class RobotController extends Thread {
 		id = new Identify(cg, us, nav);
 
 		collection = new CollectionSystem(cageMotor, nav);
-
-		receive();
 
 		this.start();
 	}
@@ -131,11 +137,24 @@ public class RobotController extends Thread {
 
 	// Receives instruction via bluetooth
 	private void receive() {
-		/*
-		 * bt = new BluetoothConnection(); transmission = bt.getTransmission();
-		 * mode = (transmission.role.equals(PlayerRole.BUILDER)) ?
-		 * RobotMode.STACKER : RobotMode.GARBAGE;
-		 */}
+/*		BluetoothConnection conn = new BluetoothConnection();
+		// as of this point the bluetooth connection is closed again, and you can pair to another NXT (or PC) if you wish
+		
+		Transmission t = conn.getTransmission();
+		if (t == null) {
+			LCD.drawString("Failed to read transmission", 0, 5);
+		} else {
+			corner = t.startingCorner;
+			role = t.role;
+			// green zone is defined by these (bottom-left and top-right) corners:
+			greenZone = t.greenZone;
+			
+			// red zone is defined by these (bottom-left and top-right) corners:
+			redZone = t.redZone;
+		}
+		// stall until user decides to end program
+		Button.waitForAnyPress();*/
+	}
 
 	// Initiates the localization of the robot
 	private void localize() {
@@ -198,42 +217,59 @@ public class RobotController extends Thread {
 
 	// Identifies a specific block
 	private void identify() {
-		collection.lowerCage();
-		while (!collection.isDone()) {
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-			}
-		}
+		collection.rotateCage(60);
+		
 		// if the block is blue collect it
-		if (id.needToCollectBlue()) {
+		
+		if (id.isBlue()) {
 			function = FunctionType.COLLECT;
 		}
+		
 		// else the robot has backed up and does a search
 		else {
-			// add the wooden block to map
 			Map.getCurrentBlock().investigate();
-			function = FunctionType.SEARCH;
+			Map.updateWaypoint(false);
+			
+			if (Map.hasNewWaypoint()) {
+				function = FunctionType.BLOCK_NAVIGATE;
+			}
+			else{
+				function = FunctionType.POINT_NAVIGATE;
+			}
 		}
 	}
 
 	// Collects said block
 	private void collect() {
-		collection.collectBlock();
-
-		while (!collection.isDone()) {
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
+		if(blocksCollected == 0){
+			collection.lowerCage();
+			collection.openCage();
+			
+			nav.moveStraight(20);
+			while(!nav.isDone()){
+				try { Thread.sleep(400); } 
+				catch (InterruptedException e) { }
 			}
+			
+			collection.closeCage();
+			collection.raiseCage();
 		}
-
-		Odometer.getPosition(pos);
-		scanStart = pos[2];
-		scanAngle = 359;
-		scanDirection = 1;
-
-		function = FunctionType.SEARCH;
+		else{
+			nav.moveStraight(20);
+			while(!nav.isDone()){
+				try { Thread.sleep(400); } 
+				catch (InterruptedException e) { }
+			}
+			
+			collection.collect();
+		}
+		
+		blocksCollected++;
+		
+		if(blocksCollected >= maxBlocks)
+			function = FunctionType.END_NAVIGATE;
+		else
+			function = FunctionType.SEARCH;
 	}
 
 	// Handles the navigation to the end
@@ -243,15 +279,7 @@ public class RobotController extends Thread {
 
 	// Releases the entire stack (only done at the end of the match)
 	private void release() {
-		collection.releaseStack();
-
-		while (!collection.isDone()) {
-			try {
-				Thread.sleep(500);
-			} catch (InterruptedException e) {
-			}
-		}
-
+		collection.release();
 		function = FunctionType.IDLE;
 	}
 

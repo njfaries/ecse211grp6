@@ -1,5 +1,5 @@
 package robot.test;
-import robot.base.*;
+
 import robot.localization.*;
 import robot.localization.Localization.StartCorner;
 import robot.navigation.*;
@@ -36,7 +36,7 @@ public class LocalizationTest {
 	private static Localization loc;
 	
 	public static void main(String args[]) {
-		Motor.C.rotate(-360);
+		Motor.C.rotate(-330);
 		int buttonChoice;
 		LCD.drawString("Running...", 0, 0);
 		buttonChoice = Button.waitForAnyPress();
@@ -51,7 +51,7 @@ public class LocalizationTest {
 	public LocalizationTest() {
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo, null);
-		Navigation nav = new Navigation(robo);
+		Navigation nav = new Navigation2(robo);
 		ColorGather cg = new ColorGather(csLeft, csRight, csBlock);
 		USGather usg = new USGather(us);
 		

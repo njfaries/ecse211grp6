@@ -143,6 +143,8 @@ public class ColorGather implements TimerListener {
 		else if(isOnLine && sumDiff > LINE_THRESHOLD)
 			isOnLine = false;
 
+		LCD.drawString(sumDiff + "", 0, 4);
+		
 		return isOnLine;
 	}
 }

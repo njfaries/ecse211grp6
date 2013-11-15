@@ -19,10 +19,10 @@ public class NavigationTest extends Thread{
 	private NXTRegulatedMotor rightMotor = Motor.B;
 	
 	private TwoWheeledRobot robo;
-	Navigation nav;
+	Navigation2 nav;
 	
 	 // This controls which points the navigation travels to
-	double[][] waypoints = new double[][]{{60,60}};
+	double[][] waypoints = new double[][]{{60,60},{60,90}};
 	int wpIndex = 0;
 	
 	public static void main(String[] args) {
@@ -31,9 +31,9 @@ public class NavigationTest extends Thread{
 	public NavigationTest(){
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo, null);
-		nav = new Navigation(robo);
+		nav = new Navigation2(robo);
 		
-		new LCDInfo();
+		//new LCDInfo();
 		
 		this.start();
 	}
