@@ -91,7 +91,7 @@ public class TwoWheeledRobot {
 		setSpeeds(forwardSpeed, rotationSpeed);
 	}
 	
-	private void setSpeeds(double forwardSpeed, double rotationalSpeed) {
+	void setSpeeds(double forwardSpeed, double rotationalSpeed) {
 		double leftSpeed, rightSpeed;
 
 		this.forwardSpeed = forwardSpeed;
@@ -101,21 +101,6 @@ public class TwoWheeledRobot {
 				180.0 / (leftRadius * Math.PI);
 		rightSpeed = (forwardSpeed - rotationalSpeed * width * Math.PI / 360.0) *
 				180.0 / (rightRadius * Math.PI);
-	
-		// set motor directions
-		if (leftSpeed > 0.0)
-			leftMotor.forward();
-		else {
-			leftMotor.backward();
-			leftSpeed = -leftSpeed;
-		}
-		
-		if (rightSpeed > 0.0)
-			rightMotor.forward();
-		else {
-			rightMotor.backward();
-			rightSpeed = -rightSpeed;
-		}
 	
 		// set motor speeds
 		if (leftSpeed > 900.0)
@@ -128,6 +113,16 @@ public class TwoWheeledRobot {
 		else
 			rightMotor.setSpeed((int)rightSpeed);
 	}
+	public void turn(){
+		if(rotationSpeed > 0){
+			leftMotor.forward();
+			rightMotor.backward();
+		}
+		else{
+			leftMotor.forward();
+			rightMotor.backward();
+		}
+	}
 	public void goForward(){
 		rightMotor.forward();
 		leftMotor.forward();
@@ -135,5 +130,9 @@ public class TwoWheeledRobot {
 	public void goBackward(){
 		rightMotor.backward();
 		leftMotor.backward();
+	}
+	public void stopMotor(){
+		rightMotor.stop();
+		leftMotor.stop();
 	}
 }

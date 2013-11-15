@@ -59,19 +59,22 @@ public class Navigation2 extends Navigation implements TimerListener {
 			dT = getAngle(dX, dY) - pos[2];
 		
 		// Checks if rotation is necessary
-		if(Math.abs(dT) > ANGLE_ERROR_THRESH)
+		if(Math.abs(dT) > ANGLE_ERROR_THRESH && (Math.abs(dX) > DIST_ERROR_THRESH * 2 || Math.abs(dY) > DIST_ERROR_THRESH * 2))
 			turning = true;
 /*		else if(Math.abs(dT) > ANGLE_ERROR_THRESH && (Math.abs(dX) > DIST_ERROR_THRESH*2 || Math.abs(dY) > DIST_ERROR_THRESH*2))
 			turning = true;*/
 		else{
+			robo.stopMotor();
 			turning = false;
 			turnDirection = 0;
 		}
 		// Checks if traveling is necessary
 		if(Math.abs(dX) > DIST_ERROR_THRESH || Math.abs(dY) > DIST_ERROR_THRESH)
 			traveling = true;
-		else
+		else{
 			traveling = false;
+			robo.stopMotor();
+		}
 		
 		// Movement methods called here
 		if(turning){
@@ -79,12 +82,12 @@ public class Navigation2 extends Navigation implements TimerListener {
 			turnBy(dT);
 		}
 		else if(traveling){
-			Odometer.runCorrection(true);
+			Odometer.runCorrection(false);
 			travel();
 		}
 		else{
 			Odometer.runCorrection(false);
-			stop();
+			robo.stopMotor();
 		}
 		
 		LCD.drawString("                                          ", 0, 5);
@@ -94,18 +97,20 @@ public class Navigation2 extends Navigation implements TimerListener {
 	}
 	// Travel to a point (this is called after the robot is oriented so only forward movement is necessary)
 	private void travel(){
-		robo.setRotationSpeed(0);
-		robo.setForwardSpeed(FORWARD_SPEED);
+		robo.stopMotor();
+		robo.setSpeeds(FORWARD_SPEED, 0);
+		robo.goForward();
 	}
 	// Turn by a specific amount
 	private void turnBy(double theta){
-		robo.setForwardSpeed(0);
-		
+		robo.stopMotor();
 		if(turnDirection == 1){
-			robo.setRotationSpeed(ROTATION_SPEED);
+			robo.setSpeeds(0, ROTATION_SPEED);
+			robo.turn();
 		}
 		else if(turnDirection == 2){
-			robo.setRotationSpeed(-ROTATION_SPEED);
+			robo.setSpeeds(0, -ROTATION_SPEED);
+			robo.turn();
 		}
 		else{
 			if((theta > 0 && theta <= 180) || (theta > -360 && theta < -180))
