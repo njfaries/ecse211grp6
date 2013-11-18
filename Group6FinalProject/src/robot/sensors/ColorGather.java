@@ -99,6 +99,15 @@ public class ColorGather implements TimerListener {
 	}
 	
 	/**
+	 * Determines the int color value of object in front of the sensor
+	 * @return int - value of the blue light return
+	 */
+	public int getFilteredGreen() {
+		csBlockReader.setFloodlight(Color.GREEN);
+		return csBlockReader.getNormalizedLightValue();
+	}
+	
+	/**
 	 * Determines if the light sensor in the front of the robot is detecting a Styrofoam block.
 	 * @return boolean - if the block is blue
 	 */	
@@ -110,9 +119,19 @@ public class ColorGather implements TimerListener {
 		int blue = getFilteredBlue();
 		try { Thread.sleep(10); }  catch (InterruptedException e) {}
 		
-		csBlockReader.setFloodlight(false);
+		int green = getFilteredGreen();
+		try { Thread.sleep(10); }  catch (InterruptedException e) {}
 		
-		if(red - blue < 50)
+		csBlockReader.setFloodlight(false);
+		LCD.drawString("                         ",0,1);
+		LCD.drawString("                         ", 0,2);
+		LCD.drawString("                         ", 0,3);
+		
+		LCD.drawString(red + "",0,1);
+		LCD.drawString(blue + "", 0,2);
+		LCD.drawString(green + "", 0,3);
+		
+		if(red - blue < 20)
 			return true; 
 		else
 			return false; 

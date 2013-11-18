@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import lejos.nxt.LCD;
 import robot.base.Status;
 import robot.navigation.Navigation;
+import robot.navigation.Navigation2;
 import robot.navigation.Odometer;
 import robot.sensors.USGather;
 
@@ -18,7 +19,7 @@ public class Scan {
 	 * @param nav - The Navigation class being used
 	 * @param us - The USGather class being used
 	 */
-	public Scan(Navigation nav, USGather us){	
+	public Scan(Navigation2 nav, USGather us){	
 		scanParsed = false;
 		// Creates empty array lists that data is added to
 		double[] pos = new double[3];
@@ -46,6 +47,7 @@ public class Scan {
 
 			try { Thread.sleep(50); } catch (InterruptedException e) {}
 		}
+		nav.stop();
 		
 		// Convert the arrayLists to arrays
 		

@@ -1,6 +1,7 @@
 package robot.localization;
 import robot.sensors.ColorGather;
 import robot.sensors.USGather;
+import robot.bluetooth.StartCorner;
 import robot.navigation.*;
 import lejos.nxt.*;
 
@@ -14,20 +15,20 @@ import lejos.nxt.*;
 */
 
 public class Localization {
-        public enum StartCorner {BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT};
+        //public enum StartCorner {BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT};
 		private final int US_OFFSET = 8;                                //Measured value (distance from centre)
         private final double LS_OFFSET_ANGLE = 29.74488;//Measured value (degrees from central axis)
         private final double LS_OFFSET_DIST = 7;                //Measured value (distance from centre of rotation)
         private final int WALL_DISTANCE = 40;                         //Arbitrary value. Not tested
         private final int ROTATION_SPEED = 300;                 //Needs to be tested
-        private Navigation nav;        
+        private Navigation2 nav;        
         private USGather usGather;
         private ColorGather colorGather;
         private StartCorner corner;
         private int angleAdjustment = 0;
         
         
-        public Localization(USGather us, ColorGather cg, StartCorner corner, Navigation nav) {
+        public Localization(USGather us, ColorGather cg, StartCorner corner, Navigation2 nav) {
                 this.corner = corner;
                 usGather = us;
                 colorGather = cg;
@@ -35,7 +36,7 @@ public class Localization {
                 
         }
         
-        public void localize() {
+	public void localize() {
         	switch(corner) {
                 case BOTTOM_LEFT:         angleAdjustment = 0;
                 case BOTTOM_RIGHT:         angleAdjustment = 270;
@@ -43,20 +44,22 @@ public class Localization {
                 case TOP_LEFT:                 angleAdjustment = 90;
                 default:                         angleAdjustment = 0;
         	} 
-                //usLocalization();
+                usLocalization();
                 LCD.drawString("us done", 0, 3);
-                //nav.travelTo(10, 10);
-                lightLocalization();
-                
-                nav.travelTo(30,30);
+
+                nav.turnTo(0, 0);
                 while(!nav.isDone()){
                 	try { Thread.sleep(500); }  catch (InterruptedException e) {}
                 }
+                nav.stop();
                 
-                nav.turnTo(angleAdjustment,0);
+                lightLocalization();
+                
+                nav.travelTo(90,90);
                 while(!nav.isDone()){
                 	try { Thread.sleep(500); }  catch (InterruptedException e) {}
-                }             
+                }   
+                nav.stop();
         }
         
         /**
@@ -64,43 +67,42 @@ public class Localization {
          * set the heading in the odometer.
          */        
         
-        public void usLocalization() {
-        	double angleA = 0; double angleB = 0;
-                double[] array = new double[3];                        //Just to make getPosition happy...
-                boolean direction = true;
-                while (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //If starts facing a wall it will rotate until
-                        rotate(direction);                                                                                                                //it is no longer facing wall.
-                }
-                while(true) {        //while still localizing, may put bool variable here later.
-                        rotate(direction);
-                        LCD.clear();
-                        LCD.drawInt((int) usGather.getRawDistance(), 13, 0);
-                        if (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
-                                LCD.drawString("In...", 0, 0);
-                        		Motor.A.stop();                                                                                                                //stop the motors and get the theta value
-                                Motor.B.stop();                                                                                                                //from the odometer
-                                Odometer.getPosition(array);                                                                                 //Need to be able to get theta more easily...
-                                LCD.drawInt((int) array[2], 0, 5);
-                                if (angleA == 0) {                                                                                                        //If this is the first time it's stopped (angleA hasn't
-                                        angleA = Math.toRadians(array[2]);                                                                                                //been changed) then set angleA and reverse the direction.
-                                        direction = false;                                                                                                //The sleep is to ensure that the same edge is not picked
-                                        rotate(direction);
-                                        LCD.drawInt((int) angleA, 0, 0);
-                                        try { Thread.sleep(2000); } catch (InterruptedException e) {}        //up again.
-                                } else {
-                                        angleB = Math.toRadians(array[2]);                                                                                                //Sets the second angle,
-                                        LCD.drawInt((int) angleB, 0, 1);
-                                        array[2] = Math.toDegrees(calculateUS(angleA, angleB)) + angleAdjustment;                        //Calculates the true angle and adjusts for corner.
-                                        Odometer.setPosition(array, new boolean [] {false, false, true});        //Sets the theta in the odometer, but NOT x and y.
-                                        nav.turnTo(angleAdjustment, 0);
-                                        while(!nav.isDone()){
-                                        	try { Thread.sleep(500); }  catch (InterruptedException e) {}
-                                        }
-                                        return;
-                                }
-                        }
-                }
-        }
+	public void usLocalization() {
+		double angleA = 0; double angleB = 0;
+		double[] array = new double[3];                        //Just to make getPosition happy...
+                
+/*		nav.rotate(0); 
+		while (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //If starts facing a wall it will rotate until
+			try { Thread.sleep(20); } catch (InterruptedException e) {}                                                                                                       //it is no longer facing wall.
+		}
+		nav.stop();*/
+             
+		nav.rotate(0);
+		while(true) {        //while still localizing, may put bool variable here later.                        
+			if (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
+				nav.stop(); 
+				//from the odometer
+				Odometer.getPosition(array);
+                                
+				if (angleA == 0) {                                                                                                        //If this is the first time it's stopped (angleA hasn't
+					angleA = Math.toRadians(array[2]);                                              
+				} 
+				else {
+					angleB = Math.toRadians(array[2]);
+					break;
+				}
+				
+                //been changed) then set angleA and reverse the direction.                                                                                            //The sleep is to ensure that the same edge is not picked
+				nav.rotate(1);
+				try { Thread.sleep(1000); } catch (InterruptedException e) {}        //up again.
+			}
+			
+			try { Thread.sleep(50); }  catch (InterruptedException e) {}   
+		}
+		array[2] = Math.toDegrees(calculateUS(angleA, angleB)) + angleAdjustment;                        //Calculates the true angle and adjusts for corner.
+		Odometer.setPosition(array, new boolean [] {false, false, true});        //Sets the theta in the odometer, but NOT x and y.                                        
+		
+	}
         
         /**
          * The method responsible for handling the light sensor part of localization.
@@ -116,7 +118,7 @@ public class Localization {
                 
                 boolean isOnLine = false;
                 
-                nav.turnTo(359, 1);
+                nav.rotate(0);
                 while(counter < 4) {
                         if (colorGather.isOnLine(0) && !isOnLine) {				//0 = left sensor on robot
                                 Odometer.getPosition(array);

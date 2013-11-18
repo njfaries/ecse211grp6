@@ -58,8 +58,8 @@ public class Odometer implements TimerListener {
 			theta += dDH[1];
 			theta = fixDegAngle(theta);
 			
-			x += dDH[0] * Math.sin(Math.toRadians(theta));
-			y += dDH[0] * Math.cos(Math.toRadians(theta));
+			x += dDH[0] * Math.cos(Math.toRadians(theta));
+			y += dDH[0] * Math.sin(Math.toRadians(theta));
 			
 			// Determines if the robot is moving straight. If so, attempt to do odometry correction
 			// note* only updates if robot has recently crossed a gridline.

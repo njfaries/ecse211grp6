@@ -1,4 +1,5 @@
 package robot.navigation;
+import lejos.nxt.LCD;
 import lejos.nxt.NXTRegulatedMotor;
 
 /**
@@ -11,10 +12,15 @@ import lejos.nxt.NXTRegulatedMotor;
 public class TwoWheeledRobot {
 	public static final double DEFAULT_LEFT_RADIUS = 2.125;
 	public static final double DEFAULT_RIGHT_RADIUS = 2.125;
-	public static final double DEFAULT_WIDTH = 21.0;
+	public static final double DEFAULT_WIDTH = 22.0;
 	private NXTRegulatedMotor leftMotor, rightMotor;
 	private double leftRadius, rightRadius, width;
 	private double forwardSpeed = 0, rotationSpeed = 0;
+	private boolean moving = false;
+	private boolean turning = false;
+	private boolean stopped = true;
+	
+	private Object lock = new Object();
 	
 	public TwoWheeledRobot(NXTRegulatedMotor leftMotor,
 						   NXTRegulatedMotor rightMotor,
@@ -102,37 +108,66 @@ public class TwoWheeledRobot {
 		rightSpeed = (forwardSpeed - rotationalSpeed * width * Math.PI / 360.0) *
 				180.0 / (rightRadius * Math.PI);
 	
-		// set motor speeds
-		if (leftSpeed > 900.0)
-			leftMotor.setSpeed(900);
-		else
-			leftMotor.setSpeed((int)leftSpeed);
-		
-		if (rightSpeed > 900.0)
-			rightMotor.setSpeed(900);
-		else
-			rightMotor.setSpeed((int)rightSpeed);
-	}
-	public void turn(){
-		if(rotationSpeed > 0){
-			leftMotor.forward();
-			rightMotor.backward();
+		synchronized(lock){
+			// set motor speeds
+			if (leftSpeed > 900.0)
+				leftMotor.setSpeed(900);
+			else
+				leftMotor.setSpeed((int)leftSpeed);
+			
+			if (rightSpeed > 900.0)
+				rightMotor.setSpeed(900);
+			else
+				rightMotor.setSpeed((int)rightSpeed);
 		}
-		else{
-			leftMotor.forward();
-			rightMotor.backward();
+	}
+	public void turn(int direction){
+		moving = false;
+		turning = true;
+		stopped = false;
+		
+		synchronized(lock){
+			if(direction == 0){
+				
+				leftMotor.forward();
+				rightMotor.backward();
+			}
+			else{
+				leftMotor.backward();
+				rightMotor.forward();
+			}
 		}
 	}
 	public void goForward(){
-		rightMotor.forward();
-		leftMotor.forward();
+		moving = true;
+		turning = false;
+		stopped = false;
+		
+		LCD.drawString("forward! " + (int)leftMotor.getSpeed(), 0,5);
+		
+		synchronized(lock){
+			rightMotor.forward();
+			leftMotor.forward();
+		}
 	}
 	public void goBackward(){
-		rightMotor.backward();
-		leftMotor.backward();
+		moving = true;
+		turning = false;
+		stopped = false;
+		
+		synchronized(lock){
+			rightMotor.backward();
+			leftMotor.backward();
+		}
 	}
 	public void stopMotor(){
-		rightMotor.stop();
-		leftMotor.stop();
+		moving = false;
+		turning = false;
+		stopped = true;
+		
+		synchronized(lock){
+			rightMotor.stop();
+			leftMotor.stop();
+		}
 	}
 }

@@ -33,7 +33,7 @@ public class ScanningTest extends Thread{
 	
 	private UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
 		
-	private Navigation nav;
+	private Navigation2 nav;
 	private TwoWheeledRobot robo;
 	
 	private USGather us;

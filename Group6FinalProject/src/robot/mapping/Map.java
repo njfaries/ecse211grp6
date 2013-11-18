@@ -4,6 +4,7 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 
 import lejos.nxt.LCD;
+import robot.bluetooth.PlayerRole;
 import robot.navigation.Odometer;
 
 /**
@@ -45,15 +46,9 @@ public class Map {
 	 * Creates the map instance with the constructor of the robot mode 0-stacker 1-garbager
 	 * @param mode
 	 */
-	public Map(/*PlayerRole role,*/ int[] redZone, int[] greenZone){
-		if(true){
-			endPoints = greenZone;
-			avoidPoints = redZone;
-		}
-		else{
-			endPoints = redZone;
-			avoidPoints = greenZone;
-		}
+	public Map(PlayerRole role, int[] redZone, int[] greenZone){
+		endPoints = greenZone;
+		avoidPoints = redZone;
 		
 		endZone.setSize(endPoints[2] - endPoints[0] ,endPoints[3] - endPoints[1]);
 		endZone.setLocation(endPoints[0] + 30, endPoints[1] + 30);
@@ -63,28 +58,34 @@ public class Map {
 	}
 	
 	// Called when the next block to investigated must be found
-	private static Block getNextBlock(ArrayList<Block> tempBlocks){
-		double closestValue = 255;
-		int closestIndex = -1;
+	private static Block getNextBlock(){
+		ArrayList<Block> tempBlocks = blocks;
 		
-		if(tempBlocks.size() == 0)
+		if(tempBlocks != null && tempBlocks.size() == 0)
 			return null;
 		
+		for(int i=0; i < tempBlocks.size(); i++){
+			if(tempBlocks.get(i).wasInvestigated())
+				tempBlocks.remove(i);
+		}
+		
+		double closestValue = 255;
+		int closestIndex = -1;
+				
 		for(int i=0; i < tempBlocks.size(); i++){
 			if(tempBlocks.get(i).distanceToBlock() < closestValue){
 				closestValue = tempBlocks.get(i).distanceToBlock();
 				closestIndex = i;
 			}
 		}
-		
-		if(tempBlocks.get(closestIndex).wasInvestigated()){
-			tempBlocks.remove(closestIndex);
-			return getNextBlock(tempBlocks);
-		}
-		return blocks.get(closestIndex);
+
+		return tempBlocks.get(closestIndex);
 	}
 	
 	public static void cleanBlocks(){
+		if(blocks.size() < 1)
+			return;
+		
 		LCD.drawString(blocks.size() + "",0,7);
 		for(int i=0; i<blocks.size(); i++){
 			if(blocks.get(i).getConfidence() < CONFIDENCE_THRESHOLD){
@@ -114,20 +115,23 @@ public class Map {
 		
 		if(waypointXs.size() == 0){
 			if(!goHome){
-				Block nextBlock = getNextBlock(blocks);
-				if(nextBlock == null){
+				currentBlock = getNextBlock();
+				if(currentBlock == null){
 					newWaypoint = false;
 					return;
 				}
-				double[] center = nextBlock.getBlockCenter();
-				calculateWaypoints(center[0], center[1]);
+				double[] center = currentBlock.getBlockCenter();
+				waypointXs.add(center[0]);
+				waypointYs.add(center[1]);
 			}
 			else{
 				if(isHome){
 					newWaypoint = false;
 					return;
 				}
-				findPathToWaypoint(endPoints[2] - endPoints[0], endPoints[3] - endPoints[1]);
+				waypointXs.add(0, (endPoints[2] + endPoints[0]) / 2.0);
+				waypointYs.add(0, (endPoints[3] + endPoints[1]) / 2.0);
+				//findPathToWaypoint(endPoints[2] - endPoints[0], endPoints[3] - endPoints[1]);
 			}
 		}
 		
@@ -153,18 +157,6 @@ public class Map {
 			return;
 		waypointXs.remove(0);
 		waypointYs.remove(0);
-	}
-	// Calculates the new waypionts to a block (waypoint sent to the nearest point on the exterior of the block)
-	private static void calculateWaypoints(double wpX, double wpY){
-		double[] waypoint = new double[]{wpX, wpY};
-		Odometer.getPosition(pos);		
-		for(int i=0; i < blocks.size(); i++){
-			if(blocks.get(i).containsPoint(wpX, wpY)){
-				waypoint = blocks.get(i).getExteriorPoint(pos[2], pos[0], pos[1], wpX, wpY);
-				break;
-			}
-		}
-		findPathToWaypoint(waypoint[0], waypoint[1]);
 	}
 	// Creates an array of waypoints that contain the path to the final destination
 	private static void findPathToWaypoint(double wpX, double wpY){

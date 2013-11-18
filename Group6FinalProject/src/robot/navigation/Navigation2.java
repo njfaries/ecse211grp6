@@ -19,7 +19,7 @@ public class Navigation2 extends Navigation implements TimerListener {
 	
 	private TwoWheeledRobot robo;
 	//will need getters and setters
-	private double destinationX, destinationY, destinationT;
+	private double destinationX, destinationY, destinationT, startX, startY;
 	private int turnDirection;
 	
 	private double[] pos = new double[3];
@@ -27,7 +27,8 @@ public class Navigation2 extends Navigation implements TimerListener {
 	private boolean done = true;
 	private boolean traveling = false;
 	private boolean turning = false;
-	
+	private boolean onlyTurn = false;
+	private Object lock = new Object();
 	
 	/**
 	 * Requires the odometer as an input along with the two motors for each wheel.
@@ -46,8 +47,14 @@ public class Navigation2 extends Navigation implements TimerListener {
 	
 	@Override
 	public void timedOut() {
-		if(done)
+		if(done){
+			turnDirection = 0;
+			//robo.stopMotor();
 			return;
+		}
+		else{
+			robo.goForward();
+		}
 		
 		Odometer.getPosition(pos);
 		
@@ -56,24 +63,31 @@ public class Navigation2 extends Navigation implements TimerListener {
 		double dY = destinationY - pos[1];
 		double dT = destinationT - pos[2];
 		if(destinationT == -1)
-			dT = getAngle(dX, dY) - pos[2];
+			dT = getAngle() - pos[2];
+		
+/*		LCD.drawString("                                          ", 0, 3);
+		LCD.drawString(destinationX + "|" + destinationY + "|" + destinationT, 0, 3);
+		LCD.drawString("                                          ", 0, 4);
+		LCD.drawString((int)pos[0] + "|" + (int)pos[1] + "|" +(int)pos[2], 0, 4);*/
 		
 		// Checks if rotation is necessary
-		if(Math.abs(dT) > ANGLE_ERROR_THRESH && (Math.abs(dX) > DIST_ERROR_THRESH * 2 || Math.abs(dY) > DIST_ERROR_THRESH * 2))
+/*		if(Math.abs(dT) > ANGLE_ERROR_THRESH && (Math.abs(dX) > DIST_ERROR_THRESH * 2 || Math.abs(dY) > DIST_ERROR_THRESH * 2) && traveling)
 			turning = true;
-/*		else if(Math.abs(dT) > ANGLE_ERROR_THRESH && (Math.abs(dX) > DIST_ERROR_THRESH*2 || Math.abs(dY) > DIST_ERROR_THRESH*2))
-			turning = true;*/
+		else*/ if(Math.abs(dT) > ANGLE_ERROR_THRESH)
+			turning = true;
 		else{
-			robo.stopMotor();
 			turning = false;
 			turnDirection = 0;
 		}
 		// Checks if traveling is necessary
-		if(Math.abs(dX) > DIST_ERROR_THRESH || Math.abs(dY) > DIST_ERROR_THRESH)
+		if(Math.abs(dX) > DIST_ERROR_THRESH || Math.abs(dY) > DIST_ERROR_THRESH){
+			turnDirection = 0;
 			traveling = true;
+		}
 		else{
+			if(!onlyTurn)
+				turning = false;
 			traveling = false;
-			robo.stopMotor();
 		}
 		
 		// Movement methods called here
@@ -86,31 +100,29 @@ public class Navigation2 extends Navigation implements TimerListener {
 			travel();
 		}
 		else{
+			done = true;
 			Odometer.runCorrection(false);
-			robo.stopMotor();
 		}
 		
-		LCD.drawString("                                          ", 0, 5);
+/*		LCD.drawString("                                          ", 0, 5);
 		LCD.drawString(done + "|" + turning + "|" + traveling, 0, 5);
 		LCD.drawString("                                          ", 0, 6);
-		LCD.drawString((int)dX + "|" + (int)dY + "|" +(int)dT, 0, 6);
+		LCD.drawString((int)dX + "|" + (int)dY + "|" +(int)dT, 0, 6);*/
 	}
 	// Travel to a point (this is called after the robot is oriented so only forward movement is necessary)
 	private void travel(){
-		robo.stopMotor();
 		robo.setSpeeds(FORWARD_SPEED, 0);
 		robo.goForward();
 	}
 	// Turn by a specific amount
 	private void turnBy(double theta){
-		robo.stopMotor();
 		if(turnDirection == 1){
 			robo.setSpeeds(0, ROTATION_SPEED);
-			robo.turn();
+			robo.turn(0);
 		}
 		else if(turnDirection == 2){
 			robo.setSpeeds(0, -ROTATION_SPEED);
-			robo.turn();
+			robo.turn(1);
 		}
 		else{
 			if((theta > 0 && theta <= 180) || (theta > -360 && theta < -180))
@@ -125,8 +137,8 @@ public class Navigation2 extends Navigation implements TimerListener {
 		
 	}
 	// Calculate an angle by observing the distances in X and Y needed to be travelled by
-	private double getAngle(double dX, double dY){
-		double angle = Math.toDegrees(Math.atan2(dY, dX));
+	private double getAngle(){
+		double angle = Math.toDegrees(Math.atan2((destinationY - startY), (destinationX - startX)));
 
 		if (angle < 0.0)
 			angle = 360.0 + (angle % 360.0);
@@ -141,12 +153,23 @@ public class Navigation2 extends Navigation implements TimerListener {
 	 * @param y - The destination y value
 	 */
 	public void travelTo(double x, double y) {
+		robo.setSpeeds(0,0);
+		robo.goForward();
+		
+		Odometer.getPosition(pos);
+		startX = pos[0];
+		startY = pos[1];
+		
 		destinationX = x;
 		destinationY = y;
 		destinationT = -1;
 		
 		traveling = true;
-		done = false;
+		onlyTurn = false;
+		
+		synchronized(lock){
+			done = false;
+		}
 	}
 		
 	/**
@@ -155,14 +178,23 @@ public class Navigation2 extends Navigation implements TimerListener {
 	 * @param direction - The direction to turn 0:don't care; 1:clockwise; 2:counter clockwise
 	 */
 	public void turnTo(double theta, int direction) {
+		robo.setSpeeds(0,0);
+		robo.goForward();
+		
 		Odometer.getPosition(pos);
+		startX = pos[0];
+		startY = pos[1];
 		destinationX = pos[0];
 		destinationY = pos[1];
 		destinationT = theta;
 		turnDirection = direction;
 		
 		turning = true;
-		done = false;
+		onlyTurn = true;
+		
+		synchronized(lock){
+			done = false;
+		}
 	}
 	
 	/**
@@ -170,21 +202,16 @@ public class Navigation2 extends Navigation implements TimerListener {
 	 * @return void
 	 */
 	public void stop() {				
-		done = true;
+		synchronized(lock){
+			done = true;
+			robo.setSpeeds(0,0);
+			robo.stopMotor();
+		}
 		traveling = false;
 		turning = false;
 		
-		robo.setForwardSpeed(0);
-		robo.setRotationSpeed(0);
-	}
-	
-	/**
-	 * Continues with the current path (to be used mainly if the robot has had to stop to the other player
-	 * and wants to continue to the same waypoint)
-	 * @return void
-	 */
-	public void cont(){
-		this.travelTo(destinationX, destinationY);
+		LCD.clear();
+		LCD.drawString("doneNav", 0,4);                                                    
 	}
 	
 	/**
@@ -201,12 +228,31 @@ public class Navigation2 extends Navigation implements TimerListener {
 	}
 	
 	public void move(){
-		robo.setForwardSpeed(FORWARD_SPEED);
-		robo.goForward();
+		LCD.drawString("move!", 0,5);
+		synchronized(lock){
+			robo.setSpeeds(FORWARD_SPEED, 0);
+			robo.goForward();
+		}
+		LCD.drawString((int)robo.getLeftWheelSpeed() + "|", 0,6);
+		
 	}
 	public void reverse(){
-		robo.setForwardSpeed(-FORWARD_SPEED);
-		robo.goBackward();
+		synchronized(lock){
+			robo.setSpeeds(-FORWARD_SPEED, 0);
+			robo.goBackward();
+		}
+		
+	}
+	public void rotate(int direction){
+		synchronized(lock){
+			if(direction == 0)
+				robo.setSpeeds(0, ROTATION_SPEED);
+			else
+				robo.setSpeeds(0, -ROTATION_SPEED);
+		
+			robo.turn(direction);
+		}
+		
 	}
 	
 	/**
@@ -214,7 +260,9 @@ public class Navigation2 extends Navigation implements TimerListener {
 	 * @return boolean: done
 	 */
 	public boolean isDone(){
-		return done;
+		synchronized(lock){
+			return done;
+		}
 	}
 }
 

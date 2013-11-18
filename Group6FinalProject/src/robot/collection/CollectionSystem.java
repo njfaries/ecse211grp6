@@ -56,7 +56,7 @@ public class CollectionSystem {
 	 * @return void
 	 */
 	public void release(){
-		cageMotor.rotate(-elevate - openClaw);
+		cageMotor.rotate(elevate + openClaw);
 	}
 		
 	/**
