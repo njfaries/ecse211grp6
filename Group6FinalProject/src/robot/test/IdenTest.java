@@ -1,9 +1,6 @@
 package robot.test;
 import robot.base.LCDInfo;
-import robot.base.DemoNoBlue.FunctionType;
-import robot.base.RobotController.RobotMode;
 import robot.collection.*;
-import robot.mapping.Map;
 import robot.navigation.*;
 import robot.sensors.*;
 import lejos.nxt.LCD;

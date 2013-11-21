@@ -3,6 +3,7 @@ package robot.test;
 import java.util.ArrayList;
 
 import robot.base.RobotController.RobotMode;
+import robot.bluetooth.PlayerRole;
 import robot.collection.*;
 import robot.mapping.Block;
 import robot.mapping.Map;
@@ -49,7 +50,7 @@ public class ScanningTest extends Thread{
 	 * This involves running the Scan() while rotating using Navigation.turnTo(x,y)
 	 */
 	public ScanningTest(){
-		new Map(/*PlayerRole.BUILDER,*/ new int[]{150,150,180,180}, new int[]{-1,-1,0,0});
+		new Map(PlayerRole.BUILDER, new int[]{150,150,180,180}, new int[]{-1,-1,0,0});
 		
 		CollectionSystem collect = new CollectionSystem(cageMotor, nav);
 		collect.rotateCage(-300);
@@ -99,21 +100,8 @@ public class ScanningTest extends Thread{
 		
 		Map.cleanBlocks();
 		
-		ArrayList<Block> blocks = Map.getBlocks();
-		//LCD.clear();
-		LCD.drawInt(blocks.size(), 0, 0);
-		for(int i=0; i < blocks.size(); i++){
-			LCD.drawString(blocks.get(i).getConfidence() + "|", 3 * i, 1);
-			double[] center = blocks.get(i).getBlockCenter();
-			if(i < 2)
-				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * i, 2);
-			else if(i < 4)
-				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * (i-2), 3);
-			else
-				LCD.drawString((int)center[0] + "," + (int)center[1] + "|", 6 * (i-4), 4);
-		}
 		
-		Map.updateWaypoint(false);
+		Map.buildNextBlockWaypoints();
 		
 		if(Map.hasNewWaypoint()){
 			double[] waypoint = new double[2];

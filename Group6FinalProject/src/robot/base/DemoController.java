@@ -47,39 +47,32 @@ public class DemoController extends Thread {
 	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
 	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
 
-	private CollectionSystem collection;
-
-	private OdometryCorrection corrector;
-
-	private Navigation2 nav;
-	private TwoWheeledRobot robo;
-
 	private USGather us;
 	private ColorGather cg;
-
+	
 	private Localization loc;
-
+	
+	private Navigation2 nav;
+	private TwoWheeledRobot robo;
+	private OdometryCorrection corrector;
+	
+	private CollectionSystem collection;
 	private Identify id;
+	
+	private FunctionType function = FunctionType.LOCALIZE;
 	
 	private int blocksCollected = 0;
 	private int maxBlocks = 2;
 	private long startTime = 0;
 	private long elapsedTime = 0;
 
+	private double[] pos = new double[3];
+	
 	StartCorner corner = StartCorner.BOTTOM_LEFT;
 	PlayerRole role = PlayerRole.BUILDER;
 	int[] greenZone = new int[4];
 	int[] redZone = new int[4];
 	
-
-	/*
-	 * private BluetoothConnection bt; private Transmission transmission;
-	 */
-
-	private FunctionType function = FunctionType.LOCALIZE;
-
-	private double[] pos = new double[3];
-
 	public static void main(String[] args) {
 		new DemoController();
 	}
@@ -137,10 +130,8 @@ public class DemoController extends Thread {
 				navigateToBlock();
 			else if (function == FunctionType.POINT_NAVIGATE)
 				navigateToNextPoint();
-			else if (function == FunctionType.END_NAVIGATE){
-				Map.updateWaypoint(true);
+			else if (function == FunctionType.END_NAVIGATE)
 				navigateToEnd();
-			}
 			else if (function == FunctionType.IDENTIFY)
 				identify();
 			else if (function == FunctionType.COLLECT)
@@ -200,7 +191,7 @@ public class DemoController extends Thread {
 		LCD.drawString("search done", 0, 4);
 		
 		Map.cleanBlocks();
-		Map.updateWaypoint(false);
+		Map.buildNextBlockWaypoints();
 		
 		if (Map.hasNewWaypoint()) {
 			function = FunctionType.BLOCK_NAVIGATE;
@@ -261,7 +252,7 @@ public class DemoController extends Thread {
 	// Handles the navigation to the end
 	private void navigateToEnd() {		
 		LCD.drawString("go home", 0, 4);
-		Map.updateWaypoint(true);
+		Map.buildEndWaypoints();
 		
 		double[] wp = new double[2];
 		Map.getWaypoint(wp);
@@ -308,7 +299,7 @@ public class DemoController extends Thread {
 		else {
 			LCD.drawString("not blue", 0,7);
 			Map.blockChecked(false);
-			Map.updateWaypoint(false);
+			Map.buildNextBlockWaypoints();
 			
 			if(Map.hasNewWaypoint())
 				function = FunctionType.BLOCK_NAVIGATE;

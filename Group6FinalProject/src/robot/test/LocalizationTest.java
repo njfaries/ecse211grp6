@@ -1,7 +1,7 @@
 package robot.test;
 
+import robot.bluetooth.StartCorner;
 import robot.localization.*;
-import robot.localization.Localization.StartCorner;
 import robot.navigation.*;
 import robot.sensors.ColorGather;
 import robot.sensors.USGather;

@@ -25,7 +25,6 @@ public class Map {
 	private static ArrayList<Double> waypointXs = new ArrayList<Double>();
 	private static ArrayList<Double> waypointYs = new ArrayList<Double>();
 	private static boolean newWaypoint = false;
-	private static boolean isHome = false;
 	
 	// ArrayList of all the detected blocks
 	private static ArrayList<Block> blocks = new ArrayList<Block>();
@@ -40,8 +39,6 @@ public class Map {
 	private Rectangle avoidZone = new Rectangle();
 	
 	private static Object lock = new Object();
-	
-	private static double[] pos = new double[3];
 	/**
 	 * Creates the map instance with the constructor of the robot mode 0-stacker 1-garbager
 	 * @param mode
@@ -95,69 +92,7 @@ public class Map {
 		LCD.drawString("                 ",0,7);
 		LCD.drawString(blocks.size() + "",0,7);
 	}
-	// Setters
-	/**
-	 * Sets the current block as having been checked. Also sets the block as being styrofoam or not
-	 * @param sytrofoam - whether or not the block is styrofoam
-	 */
-	public static void blockChecked(boolean sytrofoam){
-		currentBlock.investigate();
-		if(sytrofoam)
-			currentBlock.setStyrofoam();
-	}
 	
-	/**
-	 * Checks if the waypoint needs to be updated
-	 * @param goHome - true: update waypoint to get to end / false: update waypoint to get to nearest block
-	 */
-	public static void updateWaypoint(boolean goHome){		
-		double[] newWp = new double[2];
-		
-		if(waypointXs.size() == 0){
-			if(!goHome){
-				currentBlock = getNextBlock();
-				if(currentBlock == null){
-					newWaypoint = false;
-					return;
-				}
-				double[] center = currentBlock.getBlockCenter();
-				waypointXs.add(center[0]);
-				waypointYs.add(center[1]);
-			}
-			else{
-				if(isHome){
-					newWaypoint = false;
-					return;
-				}
-				waypointXs.add(0, (endPoints[2] + endPoints[0]) / 2.0);
-				waypointYs.add(0, (endPoints[3] + endPoints[1]) / 2.0);
-				//findPathToWaypoint(endPoints[2] - endPoints[0], endPoints[3] - endPoints[1]);
-			}
-		}
-		
-		
-		if(wpX != waypointXs.get(0) && wpY != waypointYs.get(0)){
-			newWp[0] = waypointXs.get(0);
-			newWp[1] = waypointYs.get(0);
-			
-			newWaypoint = true;
-		}
-		else{
-			newWaypoint = false;
-			return;
-		}
-
-		synchronized(lock){
-			wpX = newWp[0];
-			wpY = newWp[1];
-		}
-	}
-	public static void waypointReached(){
-		if(waypointXs.size() == 0)
-			return;
-		waypointXs.remove(0);
-		waypointYs.remove(0);
-	}
 	// Creates an array of waypoints that contain the path to the final destination
 	private static void findPathToWaypoint(double wpX, double wpY){
 		waypointXs.add(wpX);
@@ -184,7 +119,87 @@ public class Map {
 		if(hasNewWp)
 			findPathToWaypoint(currX, currY);
 	}
+	
+	// Setters
+	/**
+	 * Sets the current block as having been checked. Also sets the block as being styrofoam or not
+	 * @param sytrofoam - whether or not the block is styrofoam
+	 */
+	public static void blockChecked(boolean sytrofoam){
+		currentBlock.investigate();
+		if(sytrofoam)
+			currentBlock.setStyrofoam();
+	}
+	
+	/**
+	 * Builds a waypoint list to get to the nearest un-identified block
+	 */
+	public static void buildNextBlockWaypoints(){
+		waypointXs = new ArrayList<Double>();
+		waypointYs = new ArrayList<Double>();
+		
+		// Find the next best block from the list of blocks
+		currentBlock = getNextBlock();
+		
+		// If there is no next block available, return  without a new waypoint
+		if(currentBlock == null){
+			newWaypoint = false;
+			return;
+		}
+		
+		// Otherwise find a waypoint list to get to that point
+		double[] center = currentBlock.getBlockCenter();
+		waypointXs.add(center[0]);
+		waypointYs.add(center[1]);
+		//run below insead of the two lines above once the below lines are properly debugged
+		//findPathToWaypoint(center[0], center[1]);
+		
+		synchronized(lock){
+			newWaypoint = true;
+			wpX = waypointXs.get(0);
+			wpY = waypointYs.get(0);
+		}
+	}
+	
+	/**
+	 * Builds a waypoint list to get to the end (green/red zone)
+	 */
+	public static void buildEndWaypoints(){
+		waypointXs = new ArrayList<Double>();
+		waypointYs = new ArrayList<Double>();
+		
+		double[] endPoint = new double[]{(endPoints[2] + endPoints[0]) / 2.0, (endPoints[3] + endPoints[1]) / 2.0};
+		waypointXs.add(endPoint[0]);
+		waypointYs.add(endPoint[1]);
+		//run below insead of the two lines above once the below lines are properly debugged
+		//findPathToWaypoint(endPoint[0] , endPoint[1]);
+		
+		synchronized(lock){
+			newWaypoint = true;
+			wpX = waypointXs.get(0);
+			wpY = waypointYs.get(0);
+		}
+	}
 
+	/**
+	 * Tells the map that a waypoint has been reached
+	 */
+	public static void waypointReached(){
+		waypointXs.remove(0);
+		waypointYs.remove(0);
+		
+		if(waypointXs.size() == 0){ // End of waypoint list i.e block/endpoint has been reached
+			newWaypoint = false;
+		}
+		else{
+			synchronized(lock){
+				newWaypoint = true;
+				wpX = waypointXs.get(0);
+				wpY = waypointYs.get(0);
+			}
+		}
+	}
+	
 	/**
 	 * Adds a new set of coordinates following a scan that updates 
 	 * @param newCoords - New set of coordinates to add to the map
@@ -224,18 +239,5 @@ public class Map {
 			wp[1] = wpY;
 			newWaypoint = false;
 		}
-	}
-	/**
-	 * Returns the arrayList of all blocks
-	 * @return ArrayList<Block> blocks
-	 */
-	public static ArrayList<Block> getBlocks(){
-		return blocks;
-	}
-	public static Block getCurrentBlock(){
-		return currentBlock;
-	}
-	public static int getBlockCount(){
-		return blocks.size();
 	}
 }

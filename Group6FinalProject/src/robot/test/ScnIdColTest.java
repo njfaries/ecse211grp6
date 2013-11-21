@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import robot.base.DemoController.FunctionType;
 import robot.base.RobotController.RobotMode;
+import robot.bluetooth.PlayerRole;
 import robot.collection.*;
 import robot.mapping.Block;
 import robot.mapping.Map;
@@ -59,7 +60,7 @@ public class ScnIdColTest extends Thread{
 	 * This involves running the Scan() while rotating using Navigation.turnTo(x,y)
 	 */
 	public ScnIdColTest(){
-		new Map(/*PlayerRole.BUILDER,*/ new int[]{-1,-1,0,0}, new int[]{60,60,90,90});
+		new Map(PlayerRole.BUILDER, new int[]{-1,-1,0,0}, new int[]{60,60,90,90});
 		
 		collection = new CollectionSystem(cageMotor, nav);
 		collection.rotateCage(-330);
@@ -121,7 +122,7 @@ public class ScnIdColTest extends Thread{
 		LCD.drawString("search done", 0, 4);
 		
 		Map.cleanBlocks();
-		Map.updateWaypoint(false);
+		Map.buildNextBlockWaypoints();
 		
 		if (Map.hasNewWaypoint()) {
 			function = FunctionType.BLOCK_NAVIGATE;
@@ -179,7 +180,7 @@ public class ScnIdColTest extends Thread{
 	// Handles the navigation to the end
 	private void navigateToEnd() {		
 		LCD.drawString("go home", 0, 4);
-		Map.updateWaypoint(true);
+		Map.buildEndWaypoints();
 		
 		double[] wp = new double[2];
 		Map.getWaypoint(wp);
@@ -227,7 +228,7 @@ public class ScnIdColTest extends Thread{
 		else {
 			LCD.drawString("not blue", 0,7);
 			Map.blockChecked(false);
-			Map.updateWaypoint(false);
+			Map.buildNextBlockWaypoints();
 			
 			if(Map.hasNewWaypoint())
 				function = FunctionType.BLOCK_NAVIGATE;

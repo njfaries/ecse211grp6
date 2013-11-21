@@ -1,8 +1,9 @@
 package robot.base;
 
+import robot.bluetooth.PlayerRole;
+import robot.bluetooth.StartCorner;
 import robot.collection.*;
 import robot.localization.Localization;
-import robot.localization.Localization.StartCorner;
 import robot.mapping.Map;
 import robot.mapping.Scan;
 import robot.navigation.*;
@@ -88,7 +89,7 @@ public class RobotController extends Thread {
 	public RobotController() {
 		receive();
 		
-		new Map(/*role,*/ greenZone, redZone);
+		new Map(PlayerRole.role, greenZone, redZone);
 		new LCDInfo();
 
 		us = new USGather(usFront);
