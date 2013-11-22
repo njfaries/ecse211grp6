@@ -4,7 +4,6 @@ import robot.bluetooth.BluetoothConnection;
 import robot.bluetooth.PlayerRole;
 import robot.bluetooth.StartCorner;
 import robot.bluetooth.Transmission;
-
 import robot.collection.*;
 import robot.localization.Localization;
 import robot.mapping.Map;
@@ -65,6 +64,7 @@ public class DemoController extends Thread {
 	private int maxBlocks = 2;
 	private long startTime = 0;
 	private long elapsedTime = 0;
+	private final int INTIAL_CAGE_ROTATION = -450;
 
 	private double[] pos = new double[3];
 	
@@ -84,8 +84,8 @@ public class DemoController extends Thread {
 	public DemoController() {
 		startTime = System.currentTimeMillis();
 		
-		receive();
-				
+		//receive();
+		
 		new Map(role,  redZone, greenZone);
 		//new LCDInfo();
 
@@ -105,13 +105,14 @@ public class DemoController extends Thread {
 		id = new Identify(cg, us, nav);
 
 		collection = new CollectionSystem(cageMotor, nav);
-		collection.rotateCage(-300);
+		collection.rotateCage(INTIAL_CAGE_ROTATION);
 		this.start();
 	}
 
 	// Runs all the control code (calling localization, navigation,
 	// identification, etc)
 	public void run() {
+		
 		while (true) {
 			elapsedTime = System.currentTimeMillis() - startTime;
 			if(elapsedTime > gameTime - 30000 && function != FunctionType.END_NAVIGATE)
@@ -223,8 +224,8 @@ public class DemoController extends Thread {
 		LCD.drawString("nav1.0 end", 0, 4);
 		
 		nav.move();
-		
-		while (us.getRawDistance() - 14 > 20) {
+		nav.travelTo(wp[0], wp[1]);
+		while (!nav.isDone() && !us.flagObstruction()) {
 			try { Thread.sleep(20); } 
 			catch (InterruptedException e) { }
 		}
@@ -247,7 +248,6 @@ public class DemoController extends Thread {
 		LCD.clear();
 		LCD.drawString("nav1.3 end", 0, 4);
 	}
-
 
 	// Handles the navigation to the end
 	private void navigateToEnd() {		

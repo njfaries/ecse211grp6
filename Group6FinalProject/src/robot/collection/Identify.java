@@ -12,7 +12,8 @@ public class Identify {
 	private ColorGather cg;
 	private USGather us;
 	private Navigation2 nav;
-	private final double BACKUP_DISTANCE = 10.0;	
+	private final int TESTING_DISTANCE = 21;
+	private final int SENSOR_DISTANCE = 7;
 	
 	public Identify(ColorGather cg, USGather us, Navigation2 nav) {
 		this.cg = cg;
@@ -21,19 +22,6 @@ public class Identify {
 	}
 	
 	public boolean isBlue() {
-		double distFromSensorToBlock = us.getRawDistance() - 14;
-		if(distFromSensorToBlock > 21){
-			nav.move();
-		
-			while(distFromSensorToBlock > 21){
-				try{ Thread.sleep(10); }
-				catch(InterruptedException e){ }
-				
-				distFromSensorToBlock = us.getRawDistance() - 14;
-			}
-			
-			nav.stop();
-		}
 		
 		if (cg.isBlue()) {
 			nav.reverse();
