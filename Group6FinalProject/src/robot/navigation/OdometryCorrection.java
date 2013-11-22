@@ -36,6 +36,9 @@ public class OdometryCorrection {
 		updateX = false;
 		updateY = false;
 		updateT = false;
+		
+		newLeftData = false;
+		newRightData = false;
 	}
 	
 	/**
@@ -53,34 +56,35 @@ public class OdometryCorrection {
 		if(cg.isOnLine(0) && !newLeftData){
 			leftTime = currTime;
 			newLeftData = true;
-			
-			if(newRightData){
-				getNewAngle(pos[2], speed, leftTime, rightTime);
-				if(updateT)
-					getNewPosition(pos[0], pos[1]);
-			}
 		}
 		if(cg.isOnLine(1) && !newRightData){
 			rightTime = currTime;
 			newRightData = true;
-			
-			if(newLeftData){
-				getNewAngle(pos[2], speed, rightTime, leftTime);
-				if(updateT)
-					getNewPosition(pos[0], pos[1]);
-			}
 		}
+		
 		if(!cg.isOnLine(0) && !cg.isOnLine(1) && newRightData && newLeftData){
 			newRightData = false;
 			newLeftData = false;
 		}
+		else if(newRightData && newLeftData){
+			getNewAngle(pos[2], speed, rightTime, leftTime);
+		}
 		
-		if(updateX)
-			pos[0] = this.newX;
-		if(updateY)
-			pos[1] = this.newY;
-		if(updateT)
+		if(updateT){		
 			pos[2] = this.newT;
+			updateT = false;
+			
+			getNewPosition(pos[0], pos[1]);
+		}
+		if(updateX){
+			pos[0] = this.newX;
+			updateX = false;
+		}
+		if(updateY){
+			pos[1] = this.newY;
+			updateY = false;
+		}
+
 	}
 	
 	// Gets the new angle based on the time between the crossing of both sensors, 

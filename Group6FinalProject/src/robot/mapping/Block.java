@@ -8,7 +8,7 @@ import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 public class Block {
-	public static final double blockRadius = 12, waypointDistance = 20;
+	public static final double blockRadius = 12, waypointDistance = 35;
 	private ArrayList<Double> xPoints = new ArrayList<Double>();
 	private ArrayList<Double> yPoints = new ArrayList<Double>();
 	
@@ -127,7 +127,7 @@ public class Block {
 		return false;
 	}
 	/**
-	 * Gets new a new waypoint at the edge of 
+	 * Gets new a new waypoint at the edge of the block that allows for the shortest path to the final destination
 	 * @param startX - the x value to change
 	 * @param startY - the y value to change
 	 * @param wpX - the x value of the end waypoint
@@ -135,43 +135,35 @@ public class Block {
 	 * @return double[]{x,y}
 	 */
 	public double[] getNewWaypoint(double startX, double startY, double wpX, double wpY){
+		// Finds the angle of the current path of motion
 		double lineAngle = Math.atan2((wpY - startY), (wpX - startX));
 		
-		lineAngle += 90;
+		// shift the angle 90 degrees (perpendicular to the current path)
+		lineAngle += 90; 
 		if(lineAngle < 0)
 			lineAngle += 360;
 		else if(lineAngle >= 360)
 			lineAngle -= 360;
 		
-		return getExteriorPoint(lineAngle, startX, startY, wpX, wpY);
-	}
-	/**
-	 * Gets a point outside of the block's bounds that will allow for a path to the waypoint that does not 
-	 * intersect with the block.
-	 * @param lineAngle - angle of line to check on
-	 * @param blockRadius - radial bounds
-	 * @param wpX - end waypoint
-	 * @param wpY - end waypoint
-	 * @return double[]{x,y}
-	 */
-	public double[] getExteriorPoint(double lineAngle, double startX, double startY, double wpX, double wpY){
 		double[] newWayPoint = null;
 		
+		// find new waypoints at either exterior of the block
 		double newWpX1 = centerX + waypointDistance * Math.cos(lineAngle);
 		double newWpY1 = centerY + waypointDistance * Math.sin(lineAngle);
 		double newWpX2 = centerX - waypointDistance * Math.cos(lineAngle);
 		double newWpY2 = centerY - waypointDistance * Math.sin(lineAngle);
 		
-		double distance1 = Math.sqrt(Math.pow(startX - newWpX1,2) + Math.pow(startY - newWpY1,2));
-		double distance2 = Math.sqrt(Math.pow(startX - newWpX2,2) + Math.pow(startY - newWpY2,2));
-		
+		// Determines the shortest path 
+		double distance1 = Math.sqrt(Math.pow(startX - newWpX1,2) + Math.pow(startY - newWpY1,2)) + Math.sqrt(Math.pow(wpX - newWpX1,2) + Math.pow(wpY - newWpY1,2));
+		double distance2 = Math.sqrt(Math.pow(startX - newWpX2,2) + Math.pow(startY - newWpY2,2)) + Math.sqrt(Math.pow(wpX - newWpX2,2) + Math.pow(wpY - newWpY2,2));
 		if(distance1 < distance2)
 			newWayPoint = new double[]{newWpX1, newWpY1};
 		else
 			newWayPoint = new double[]{newWpX2, newWpY2};
 		
+		// Returns new waypoint
 		return newWayPoint;
-	}	
+	}
 	public ArrayList<Double> getXValues(){
 		return xPoints;
 	}

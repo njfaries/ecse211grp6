@@ -84,7 +84,7 @@ public class DemoController extends Thread {
 	public DemoController() {
 		startTime = System.currentTimeMillis();
 		
-		receive();
+		//receive();
 				
 		new Map(role,  redZone, greenZone);
 		//new LCDInfo();
@@ -100,7 +100,7 @@ public class DemoController extends Thread {
 		loc = new Localization(us, cg, corner, nav);
 		
 		corrector = new OdometryCorrection(cg);
-		new Odometer(robo , corrector);
+		new Odometer(robo , null);
 
 		id = new Identify(cg, us, nav);
 

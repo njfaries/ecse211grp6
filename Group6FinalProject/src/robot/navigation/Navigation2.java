@@ -1,6 +1,5 @@
 package robot.navigation;
 
-import lejos.nxt.LCD;
 import lejos.util.Timer;
 import lejos.util.TimerListener;
 
@@ -65,15 +64,7 @@ public class Navigation2 extends Navigation implements TimerListener {
 		if(destinationT == -1)
 			dT = getAngle() - pos[2];
 		
-/*		LCD.drawString("                                          ", 0, 3);
-		LCD.drawString(destinationX + "|" + destinationY + "|" + destinationT, 0, 3);
-		LCD.drawString("                                          ", 0, 4);
-		LCD.drawString((int)pos[0] + "|" + (int)pos[1] + "|" +(int)pos[2], 0, 4);*/
-		
-		// Checks if rotation is necessary
-/*		if(Math.abs(dT) > ANGLE_ERROR_THRESH && (Math.abs(dX) > DIST_ERROR_THRESH * 2 || Math.abs(dY) > DIST_ERROR_THRESH * 2) && traveling)
-			turning = true;
-		else*/ if(Math.abs(dT) > ANGLE_ERROR_THRESH)
+		if(Math.abs(dT) > ANGLE_ERROR_THRESH)
 			turning = true;
 		else{
 			turning = false;
@@ -92,22 +83,15 @@ public class Navigation2 extends Navigation implements TimerListener {
 		
 		// Movement methods called here
 		if(turning){
-			Odometer.runCorrection(false);
 			turnBy(dT);
 		}
 		else if(traveling){
-			Odometer.runCorrection(false);
 			travel();
 		}
 		else{
 			done = true;
-			Odometer.runCorrection(false);
 		}
 		
-/*		LCD.drawString("                                          ", 0, 5);
-		LCD.drawString(done + "|" + turning + "|" + traveling, 0, 5);
-		LCD.drawString("                                          ", 0, 6);
-		LCD.drawString((int)dX + "|" + (int)dY + "|" +(int)dT, 0, 6);*/
 	}
 	// Travel to a point (this is called after the robot is oriented so only forward movement is necessary)
 	private void travel(){
@@ -208,10 +192,7 @@ public class Navigation2 extends Navigation implements TimerListener {
 			robo.stopMotor();
 		}
 		traveling = false;
-		turning = false;
-		
-		LCD.clear();
-		LCD.drawString("doneNav", 0,4);                                                    
+		turning = false;                                               
 	}
 	
 	/**
@@ -228,13 +209,10 @@ public class Navigation2 extends Navigation implements TimerListener {
 	}
 	
 	public void move(){
-		LCD.drawString("move!", 0,5);
 		synchronized(lock){
 			robo.setSpeeds(FORWARD_SPEED, 0);
 			robo.goForward();
 		}
-		LCD.drawString((int)robo.getLeftWheelSpeed() + "|", 0,6);
-		
 	}
 	public void reverse(){
 		synchronized(lock){

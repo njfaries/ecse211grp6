@@ -95,14 +95,13 @@ public class Map {
 	
 	// Creates an array of waypoints that contain the path to the final destination
 	private static void findPathToWaypoint(double wpX, double wpY){
-		waypointXs.add(wpX);
-		waypointYs.add(wpY);
+		waypointXs.add(0, wpX);
+		waypointYs.add(0, wpY);
 		
 		double[] pos = new double[3];
 		Odometer.getPosition(pos);
 		
-		double currX = pos[0];
-		double currY = pos[1];
+		double currX = pos[0], currY = pos[1];
 		boolean hasNewWp = false;
 		
 		for(int i=0; i < blocks.size(); i++){
@@ -169,10 +168,10 @@ public class Map {
 		waypointYs = new ArrayList<Double>();
 		
 		double[] endPoint = new double[]{(endPoints[2] + endPoints[0]) / 2.0, (endPoints[3] + endPoints[1]) / 2.0};
-		waypointXs.add(endPoint[0]);
-		waypointYs.add(endPoint[1]);
+		//waypointXs.add(endPoint[0]);
+		//waypointYs.add(endPoint[1]);
 		//run below insead of the two lines above once the below lines are properly debugged
-		//findPathToWaypoint(endPoint[0] , endPoint[1]);
+		findPathToWaypoint(endPoint[0] , endPoint[1]);
 		
 		synchronized(lock){
 			newWaypoint = true;
@@ -189,14 +188,12 @@ public class Map {
 		waypointYs.remove(0);
 		
 		if(waypointXs.size() == 0){ // End of waypoint list i.e block/endpoint has been reached
+			LCD.drawString("end of list", 0, 4);
 			newWaypoint = false;
 		}
 		else{
-			synchronized(lock){
-				newWaypoint = true;
-				wpX = waypointXs.get(0);
-				wpY = waypointYs.get(0);
-			}
+			wpX = waypointXs.get(0);
+			wpY = waypointYs.get(0);
 		}
 	}
 	
@@ -237,7 +234,13 @@ public class Map {
 		synchronized(lock){
 			wp[0] = wpX;
 			wp[1] = wpY;
-			newWaypoint = false;
 		}
+	}
+
+	public static int getBlockCount(){
+		return blocks.size();
+	}
+	public static int getWaypointCount(){
+		return waypointXs.size();
 	}
 }

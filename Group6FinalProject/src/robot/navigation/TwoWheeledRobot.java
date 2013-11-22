@@ -1,5 +1,5 @@
 package robot.navigation;
-import lejos.nxt.LCD;
+
 import lejos.nxt.NXTRegulatedMotor;
 
 /**
@@ -16,9 +16,6 @@ public class TwoWheeledRobot {
 	private NXTRegulatedMotor leftMotor, rightMotor;
 	private double leftRadius, rightRadius, width;
 	private double forwardSpeed = 0, rotationSpeed = 0;
-	private boolean moving = false;
-	private boolean turning = false;
-	private boolean stopped = true;
 	
 	private Object lock = new Object();
 	
@@ -122,10 +119,6 @@ public class TwoWheeledRobot {
 		}
 	}
 	public void turn(int direction){
-		moving = false;
-		turning = true;
-		stopped = false;
-		
 		synchronized(lock){
 			if(direction == 0){
 				
@@ -139,32 +132,18 @@ public class TwoWheeledRobot {
 		}
 	}
 	public void goForward(){
-		moving = true;
-		turning = false;
-		stopped = false;
-		
-		LCD.drawString("forward! " + (int)leftMotor.getSpeed(), 0,5);
-		
 		synchronized(lock){
 			rightMotor.forward();
 			leftMotor.forward();
 		}
 	}
 	public void goBackward(){
-		moving = true;
-		turning = false;
-		stopped = false;
-		
 		synchronized(lock){
 			rightMotor.backward();
 			leftMotor.backward();
 		}
 	}
 	public void stopMotor(){
-		moving = false;
-		turning = false;
-		stopped = true;
-		
 		synchronized(lock){
 			rightMotor.stop();
 			leftMotor.stop();
