@@ -16,7 +16,7 @@ import lejos.util.TimerListener;
  */
 public class ColorGather implements TimerListener {
 	private static final double LINE_THRESHOLD = 5;
-	private final int WOODEN_BLOCK_THRESH = 40;
+	private final int WOODEN_BLOCK_THRESH = 30;
 	private double currentColorLeft;
 	private double currentColorRight;
 	private ColorSensor csLeft, csRight, csBlockReader;

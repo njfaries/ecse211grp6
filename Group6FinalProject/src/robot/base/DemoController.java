@@ -58,7 +58,7 @@ public class DemoController extends Thread {
 	private CollectionSystem collection;
 	private Identify id;
 	
-	private FunctionType function = FunctionType.LOCALIZE;
+	private FunctionType function = FunctionType.INITIAL_SEARCH;
 	
 	private int blocksCollected = 0;
 	private int maxBlocks = 2;
@@ -164,7 +164,7 @@ public class DemoController extends Thread {
 		}
 	}
 
-	// Initiates the localization of the robot
+	// Initiates the localization of the robot 
 	private void localize() {
 		LCD.drawString("Localize", 0, 4);
 		loc.localize();
@@ -224,15 +224,21 @@ public class DemoController extends Thread {
 		LCD.drawString("nav1.0 end", 0, 4);
 		
 		nav.move();
-		while(us.getRawDistance() > 30){
+		nav.travelTo(wp[0], wp[1]);
+		while (!us.flagObstruction()) {
+			//if the navigation is done no block has been found
+			if(nav.isDone()) {
+				//move back and search again
+				nav.reverse();
+				try{ Thread.sleep(1000); }
+				catch(InterruptedException e){ }
+				nav.stop();
+				function = FunctionType.SEARCH;
+				return;
+			}
 			try { Thread.sleep(20); } 
 			catch (InterruptedException e) { }
 		}
-/*		nav.travelTo(wp[0], wp[1]);
-		while (!nav.isDone() && !us.flagObstruction()) {
-			try { Thread.sleep(20); } 
-			catch (InterruptedException e) { }
-		}*/
 		
 		nav.stop();
 		
