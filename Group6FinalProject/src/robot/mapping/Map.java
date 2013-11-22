@@ -56,15 +56,18 @@ public class Map {
 	
 	// Called when the next block to investigated must be found
 	private static Block getNextBlock(){
-		ArrayList<Block> tempBlocks = blocks;
+		ArrayList<Block> tempBlocks = new ArrayList<Block>();
 		
-		if(tempBlocks != null && tempBlocks.size() == 0)
+		if(blocks == null || blocks.size() == 0)
 			return null;
-		
-		for(int i=0; i < tempBlocks.size(); i++){
-			if(tempBlocks.get(i).wasInvestigated())
-				tempBlocks.remove(i);
+			
+		for(int i=0; i < blocks.size(); i++){
+			if(!blocks.get(i).wasInvestigated())
+				tempBlocks.add(blocks.get(i));
 		}
+		
+		if(tempBlocks == null || tempBlocks.size() == 0)
+			return null;
 		
 		double closestValue = 255;
 		int closestIndex = -1;
@@ -78,9 +81,11 @@ public class Map {
 
 		return tempBlocks.get(closestIndex);
 	}
-	
+	/**
+	 * Removes all low-confidence blocks (blocks with fewer than a set number of points) 
+	 */
 	public static void cleanBlocks(){
-		if(blocks.size() < 1)
+		if(blocks.size() == 0)
 			return;
 		
 		LCD.drawString(blocks.size() + "",0,7);
@@ -129,7 +134,18 @@ public class Map {
 		if(sytrofoam)
 			currentBlock.setStyrofoam();
 	}
-	
+	public static void buildNextPointWaypoints(double wpX, double wpY){
+		waypointXs = new ArrayList<Double>();
+		waypointYs = new ArrayList<Double>();
+		
+		findPathToWaypoint(wpX , wpY);
+		
+		synchronized(lock){
+			newWaypoint = true;
+			wpX = waypointXs.get(0);
+			wpY = waypointYs.get(0);
+		}
+	}
 	/**
 	 * Builds a waypoint list to get to the nearest un-identified block
 	 */

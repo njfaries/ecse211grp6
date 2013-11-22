@@ -224,11 +224,15 @@ public class DemoController extends Thread {
 		LCD.drawString("nav1.0 end", 0, 4);
 		
 		nav.move();
-		nav.travelTo(wp[0], wp[1]);
-		while (!nav.isDone() && !us.flagObstruction()) {
+		while(us.getRawDistance() > 30){
 			try { Thread.sleep(20); } 
 			catch (InterruptedException e) { }
 		}
+/*		nav.travelTo(wp[0], wp[1]);
+		while (!nav.isDone() && !us.flagObstruction()) {
+			try { Thread.sleep(20); } 
+			catch (InterruptedException e) { }
+		}*/
 		
 		nav.stop();
 		
@@ -271,16 +275,23 @@ public class DemoController extends Thread {
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToNextPoint() {
 		LCD.drawString("navigate2", 0, 4);
-		
 		Odometer.getPosition(pos);
-		nav.travelTo(pos[0] + 31, pos[1] + 31);
-
-		while (!nav.isDone()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
+		Map.buildNextPointWaypoints(pos[0] + 62, pos[1] + 62);
+		
+		while(Map.hasNewWaypoint()){
+			double[] wp = new double[2];
+			Map.getWaypoint(wp);
+			
+			nav.travelTo(wp[0], wp[1]);
+			while (!nav.isDone()) {
+				try { Thread.sleep(400); } 
+				catch (InterruptedException e) { }
+			}
+			nav.stop();
+			
+			Map.waypointReached();
 		}
-		nav.stop();
-				
+
 		function = FunctionType.SEARCH;
 	}
 	

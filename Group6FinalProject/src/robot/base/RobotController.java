@@ -89,7 +89,7 @@ public class RobotController extends Thread {
 	public RobotController() {
 		receive();
 		
-		new Map(PlayerRole.role, greenZone, redZone);
+		new Map(PlayerRole.BUILDER, greenZone, redZone);
 		new LCDInfo();
 
 		us = new USGather(usFront);
@@ -218,26 +218,7 @@ public class RobotController extends Thread {
 
 	// Identifies a specific block
 	private void identify() {
-		collection.rotateCage(60);
-		
-		// if the block is blue collect it
-		
-		if (id.isBlue()) {
-			function = FunctionType.COLLECT;
-		}
-		
-		// else the robot has backed up and does a search
-		else {
-			Map.getCurrentBlock().investigate();
-			Map.updateWaypoint(false);
-			
-			if (Map.hasNewWaypoint()) {
-				function = FunctionType.BLOCK_NAVIGATE;
-			}
-			else{
-				function = FunctionType.POINT_NAVIGATE;
-			}
-		}
+
 	}
 
 	// Collects said block

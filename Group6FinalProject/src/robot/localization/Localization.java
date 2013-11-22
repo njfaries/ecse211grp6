@@ -38,11 +38,11 @@ public class Localization {
         
 	public void localize() {
         	switch(corner) {
-                case BOTTOM_LEFT:         angleAdjustment = 0;
-                case BOTTOM_RIGHT:         angleAdjustment = 270;
-                case TOP_RIGHT:         angleAdjustment = 180;
-                case TOP_LEFT:                 angleAdjustment = 90;
-                default:                         angleAdjustment = 0;
+                case BOTTOM_LEFT:	angleAdjustment = 0;
+                case BOTTOM_RIGHT:	angleAdjustment = 270;
+                case TOP_RIGHT:		angleAdjustment = 180;
+                case TOP_LEFT: 		angleAdjustment = 90;
+                default:			angleAdjustment = 0;
         	} 
                 usLocalization();
                 LCD.drawString("us done", 0, 3);
@@ -55,7 +55,7 @@ public class Localization {
                 
                 lightLocalization();
                 
-                nav.travelTo(90,90);
+                nav.travelTo(60,60);
                 while(!nav.isDone()){
                 	try { Thread.sleep(500); }  catch (InterruptedException e) {}
                 }   
