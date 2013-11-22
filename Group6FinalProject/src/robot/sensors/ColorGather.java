@@ -16,6 +16,7 @@ import lejos.util.TimerListener;
  */
 public class ColorGather implements TimerListener {
 	private static final double LINE_THRESHOLD = 5;
+	private final int WOODEN_BLOCK_THRESH = 40;
 	private double currentColorLeft;
 	private double currentColorRight;
 	private ColorSensor csLeft, csRight, csBlockReader;
@@ -114,24 +115,30 @@ public class ColorGather implements TimerListener {
 	 public boolean isBlue() {
 		
 		int red = getFilteredRed();
-		try { Thread.sleep(10); } catch (InterruptedException e) {}
+		try { Thread.sleep(100); } catch (InterruptedException e) {}
 		
 		int blue = getFilteredBlue();
-		try { Thread.sleep(10); }  catch (InterruptedException e) {}
+		try { Thread.sleep(100); }  catch (InterruptedException e) {}
 		
 		int green = getFilteredGreen();
-		try { Thread.sleep(10); }  catch (InterruptedException e) {}
+		try { Thread.sleep(100); }  catch (InterruptedException e) {}
 		
 		csBlockReader.setFloodlight(false);
-		LCD.drawString("                         ",0,1);
-		LCD.drawString("                         ", 0,2);
-		LCD.drawString("                         ", 0,3);
 		
-		LCD.drawString(red + "",0,1);
-		LCD.drawString(blue + "", 0,2);
-		LCD.drawString(green + "", 0,3);
+		int sumOfAbsDiff = Math.abs(red - green) + Math.abs(red - blue) + 
+				Math.abs(green - red) + Math.abs(green - blue) + 
+				Math.abs(blue - red) + Math.abs(blue - green);
+				
+		LCD.clear();
+		LCD.drawString("r:" + red + " g:" + green + " b:" + blue, 0,0);
+		LCD.drawString("r-g:" + (red - green) + " r-b:" + (red - blue), 0,1);
+		LCD.drawString("g-r:" + (green - red) + " g-b:" + (green - blue), 0,2);
+		LCD.drawString("b-r:" + (blue - red) + " b-g:" + (blue - green), 0,3);
+		LCD.drawString("avgerage:" + (int)( (red + green + blue) / 3 ) ,0,4);
+		LCD.drawString("sumOfAbs:" + sumOfAbsDiff ,0,5);
+		try { Thread.sleep(500); }  catch (InterruptedException e) {}
 		
-		if(red - blue < 20)
+		if(sumOfAbsDiff < WOODEN_BLOCK_THRESH)
 			return true; 
 		else
 			return false; 

@@ -85,7 +85,11 @@ public class DemoController extends Thread {
 		startTime = System.currentTimeMillis();
 		
 		//receive();
+<<<<<<< HEAD
+				
+=======
 		
+>>>>>>> 24664af943a2a74017d76f6c630d19d87179294e
 		new Map(role,  redZone, greenZone);
 		//new LCDInfo();
 
