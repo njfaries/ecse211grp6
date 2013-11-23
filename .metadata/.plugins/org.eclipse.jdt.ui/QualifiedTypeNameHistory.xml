@@ -1,2 +1,8 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<qualifiedTypeNameHistroy/>
+<qualifiedTypeNameHistroy>
+<fullyQualifiedTypeName name="robot.bluetooth.StartCorner"/>
+<fullyQualifiedTypeName name="robot.bluetooth.PlayerRole"/>
+<fullyQualifiedTypeName name="robot.mapping.Map"/>
+<fullyQualifiedTypeName name="lejos.nxt.LCD"/>
+<fullyQualifiedTypeName name="robot.navigation.Odometer"/>
+</qualifiedTypeNameHistroy>

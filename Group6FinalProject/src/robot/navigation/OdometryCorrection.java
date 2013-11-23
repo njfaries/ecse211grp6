@@ -18,7 +18,7 @@ public class OdometryCorrection {
 	
 	private long leftTime, rightTime;
 	private boolean updateX, updateY, updateT, newLeftData, newRightData;
-	private double newX, newY, newT;
+	private double newX, newY, newT, dist;
 	
 	/**
 	 * In order to correct the position and heading, the OdometryCorrection class must use information gathered from
@@ -53,29 +53,35 @@ public class OdometryCorrection {
 	public void update(double[] pos, double speed){
 		long currTime = System.currentTimeMillis();
 		
+		// Check if the left sensor is over a line and was not over a line on the previous iteration
+		// Record the time that the sensor crosses
 		if(cg.isOnLine(0) && !newLeftData){
 			leftTime = currTime;
 			newLeftData = true;
 		}
+		// Repeat for right sensor
 		if(cg.isOnLine(1) && !newRightData){
 			rightTime = currTime;
 			newRightData = true;
 		}
 		
+		// If neither sensor is on the line line and there is recorded data for both sensors. Reset
 		if(!cg.isOnLine(0) && !cg.isOnLine(1) && newRightData && newLeftData){
 			newRightData = false;
 			newLeftData = false;
 		}
+		// Otherwise if there is recorded data for both sensors and one is over the line 
 		else if(newRightData && newLeftData){
 			getNewAngle(pos[2], speed, rightTime, leftTime);
 		}
 		
-		if(updateT){		
-			pos[2] = this.newT;
-			updateT = false;
-			
-			getNewPosition(pos[0], pos[1]);
+		// If there is an update to to, get the new position
+		if(updateT){	
+			// Will set updateX, updateY, updateT to false in the case of a risky update
+			getNewPosition(pos[0], pos[1]);	
 		}
+		
+		// Update values
 		if(updateX){
 			pos[0] = this.newX;
 			updateX = false;
@@ -84,18 +90,23 @@ public class OdometryCorrection {
 			pos[1] = this.newY;
 			updateY = false;
 		}
+		if(updateT){
+			pos[2] = this.newT;
+			updateT = false;
+		}
 
 	}
 	
 	// Gets the new angle based on the time between the crossing of both sensors, 
 	// the current speed, and the current approximate heading
 	private void getNewAngle(double oldAngle, double speed, long time1, long time2){
-		double secondDiff = time2 - time1 / 1000.0;
-		double distDeg = secondDiff * speed;
-		double dist = (2 * Math.PI * WHEEL_RADIUS) * (distDeg / 360.0);
+		dist = 0;
+		double timeDiff = time2 - time1 / 1000.0;
+		double distDeg = timeDiff * speed;
+		this.dist = (2 * Math.PI * WHEEL_RADIUS) * (distDeg / 360.0);
 		
 		// gets the angle to the line (will always return < 90)
-		double baseAngle = Math.toDegrees(Math.atan(dist / SENSOR_WIDTH));
+		double baseAngle = Math.toDegrees(Math.atan2(dist, SENSOR_WIDTH / 2));
 		
 		newT = -1;
 		// Loops to find the most appropriate angle
@@ -113,31 +124,31 @@ public class OdometryCorrection {
 	// Approximates the current position by determining if the robot is close to any particular
 	// gridline at recorded time of crossing. If two candidates exist, the position is not updated
 	private void getNewPosition(double oldX, double oldY){
-		double adjustedX = oldX + SENSOR_DISTANCE * Math.sin(Math.toDegrees(newT));
-		double adjustedY = oldY + SENSOR_DISTANCE * Math.cos(Math.toDegrees(newT));
 		
-		double lineDistX = adjustedX % 30;
-		if(lineDistX > 15)
-			lineDistX -= 30;
+		double adjustedX = oldX + (dist + SENSOR_DISTANCE) * Math.cos(Math.toRadians(newT));
+		double adjustedY = oldY + (dist + SENSOR_DISTANCE) * Math.sin(Math.toRadians(newT));
 		
-		double lineDistY = adjustedY % 30;
-		if(lineDistY > 15)
-			lineDistY -= 30;
-		
-		if((lineDistX > 2 && lineDistX < 2) && (lineDistY > 2 && lineDistY < 2)){
-			newX = oldX;
-			updateX = false;
-			
-			newY = oldY;
-			updateY = false;
-		}
-		else if(lineDistX > 2 && lineDistX < 2){
-			newX = adjustedX - lineDistX;
+		// Find if the error could be corrected to an x line
+		double lineErrorX = adjustedX % 30.48;
+		if(lineErrorX < 5 || lineErrorX > 25){
+			double lineDistX = Math.round(adjustedX / 30.48);
+			newX = (lineDistX * 30.48) + Math.abs(dist + SENSOR_DISTANCE) * Math.cos(Math.toDegrees(newT));
 			updateX = true;
 		}
-		else if(lineDistY > 2 && lineDistY < 2){
-			newY = adjustedY - lineDistY;
+		
+		// Find if the error can be corrected with respect to a y line
+		double lineErrorY = adjustedY % 30.48;
+		if(lineErrorY < 5 || lineErrorY > 25){
+			double lineDistY = Math.round(adjustedY / 30.48);
+			newY = (lineDistY * 30.48) + Math.abs(dist + SENSOR_DISTANCE) * Math.sin(Math.toDegrees(newT));
 			updateY = true;
+		}
+		
+		// don't risk a bad update (will be true if the robot is close to an intersection)
+		if(updateX && updateY){
+			updateX = false;
+			updateY = false;
+			updateT = false;
 		}
 	}
 }
