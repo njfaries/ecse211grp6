@@ -13,8 +13,8 @@ import lejos.nxt.UltrasonicSensor;
  * Test class.
  * Uses mocked classes for the purpose of testing collection.
  * 
- * @author Andreas
- * @version 1.0
+ * @author Andreas, Nathaniel
+ * @version 1.2
  */
 public class CollectionTest extends Thread{
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
@@ -38,6 +38,7 @@ public class CollectionTest extends Thread{
 	private static FunctionType function = FunctionType.COLLECT;
 	
 	int distanceIndex = 0;
+	int blockCount = 1;
 	
 	public static void main(String[] args) {
 		new CollectionTest();
@@ -60,7 +61,10 @@ public class CollectionTest extends Thread{
 	public void run(){
 		while(true){
 			if(function == FunctionType.COLLECT)
-				collect();			
+				if (blockCount == 0)
+					collectFirstBlock();
+				else
+					collect();
 			
 			try{
 				Thread.sleep(50);
@@ -71,7 +75,7 @@ public class CollectionTest extends Thread{
 		}
 	}
 	// Collects said block
-	private void collect(){
+	private void collectFirstBlock(){
 		collection.lowerCage();
 		collection.openCage();
 		
@@ -86,6 +90,19 @@ public class CollectionTest extends Thread{
 		collection.closeCage();
 		collection.raiseCage();
 
+		function = FunctionType.IDLE;
+	}
+	
+	private void collect() {
+		collection.lowerCage();
+		collection.openCage();
+		nav.move();
+		try { Thread.sleep(500); }
+		catch (InterruptedException e) { }
+		nav.stop();
+		collection.closeCage();
+		collection.raiseCage();
+		
 		function = FunctionType.IDLE;
 	}
 }
