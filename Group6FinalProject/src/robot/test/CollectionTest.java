@@ -38,17 +38,17 @@ public class CollectionTest extends Thread{
 	private static FunctionType function = FunctionType.COLLECT;
 	
 	int distanceIndex = 0;
-	int blockCount = 1;
+	int blockCount = 0;
 	
 	public static void main(String[] args) {
 		new CollectionTest();
 	}
 	public CollectionTest(){		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
+		cg = new ColorGather(csLeft, csRight, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo);
+		new Odometer(robo, null);
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
@@ -60,12 +60,16 @@ public class CollectionTest extends Thread{
 	// Runs all the control code (calling localization, navigation, identification, etc)
 	public void run(){
 		while(true){
-			if(function == FunctionType.COLLECT)
-				if (blockCount == 0)
+			if(function == FunctionType.COLLECT) {
+				if (blockCount == 0) {
 					collectFirstBlock();
-				else
+					blockCount++;
+				} else {
 					collect();
-			
+				}
+			} else if(function == FunctionType.IDLE) {
+				try {Thread.sleep(100);} catch(InterruptedException e) {}
+			}
 			try{
 				Thread.sleep(50);
 			}
@@ -81,11 +85,11 @@ public class CollectionTest extends Thread{
 		
 		nav.move();
 		try { Thread.sleep(2000); } 
-		catch (InterruptedException e) { }
+		catch (InterruptedException e) {}
 		nav.stop();
 		
 		try { Thread.sleep(250); } 
-		catch (InterruptedException e) { }
+		catch (InterruptedException e) {}
 		
 		collection.closeCage();
 		collection.raiseCage();
@@ -94,16 +98,26 @@ public class CollectionTest extends Thread{
 	}
 	
 	private void collect() {
+		alignBlock();
 		collection.lowerCage();
 		collection.openCage();
 		nav.move();
-		try { Thread.sleep(500); }
-		catch (InterruptedException e) { }
+		try {Thread.sleep(500);}
+		catch (InterruptedException e) {}
 		nav.stop();
 		collection.closeCage();
 		collection.raiseCage();
 		
 		function = FunctionType.IDLE;
+	}
+	
+	private void alignBlock() {
+		nav.move();
+		try {Thread.sleep(3000);} catch(InterruptedException e) {}
+		nav.stop();
+		nav.reverse();
+		while(us.getDistance() < 5);
+		nav.stop();
 	}
 }
 
