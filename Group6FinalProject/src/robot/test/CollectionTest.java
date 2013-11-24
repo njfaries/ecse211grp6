@@ -66,8 +66,9 @@ public class CollectionTest extends Thread{
 					blockCount++;
 				} else {
 					collect();
+					blockCount++;
 				}
-			} else if(function == FunctionType.IDLE && blockCount < 1) {
+			} else if(function == FunctionType.IDLE && blockCount < 2) {
 				try {Thread.sleep(100);} catch(InterruptedException e) {}
 				function = FunctionType.COLLECT;
 			}
