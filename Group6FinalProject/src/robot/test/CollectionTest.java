@@ -14,7 +14,7 @@ import lejos.nxt.UltrasonicSensor;
  * Uses mocked classes for the purpose of testing collection.
  * 
  * @author Andreas, Nathaniel
- * @version 1.2
+ * @version 1.3
  */
 public class CollectionTest extends Thread{
 	public enum FunctionType { IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, NAVIGATE, COLLECT, RELEASE };
@@ -60,9 +60,11 @@ public class CollectionTest extends Thread{
 					blockCount++;
 				} else {
 					collect();
+					blockCount++;
 				}
-			} else if(function == FunctionType.IDLE) {
+			} else if(function == FunctionType.IDLE && blockCount < 2) {
 				try {Thread.sleep(100);} catch(InterruptedException e) {}
+				function = FunctionType.COLLECT;
 			}
 			try{
 				Thread.sleep(50);
