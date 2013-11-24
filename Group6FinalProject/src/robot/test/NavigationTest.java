@@ -30,7 +30,7 @@ public class NavigationTest extends Thread{
 	}
 	public NavigationTest(){
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
 		//new LCDInfo();

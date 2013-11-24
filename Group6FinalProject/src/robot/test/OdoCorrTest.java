@@ -10,8 +10,8 @@ import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
 
 /**
- * Test class.
- * Uses mocked classes for the purpose of testing navigation.
+ * Test class for ododmetery correction
+ * Place in the vicinity of 45, 45 and let it run over the first line an a slightly off angle.
  * 
  * @author Andreas
  * @version 1.1.0
@@ -40,11 +40,12 @@ public class OdoCorrTest extends Thread{
 		new OdoCorrTest();
 	}
 	public OdoCorrTest(){
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		corr = new OdometryCorrection();
+		cg = new ColorGather(csLeft, csRight, csBlockReader, corr);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		corr = new OdometryCorrection(cg);
-		new Odometer(robo, corr);
+		
+		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
 		//new LCDInfo();
@@ -56,42 +57,24 @@ public class OdoCorrTest extends Thread{
 		navigate();
 		
 		drawReadings();
-		try{ Thread.sleep(1000); }
-		catch(InterruptedException e){ }
+		
+		while(true){
+			try{ Thread.sleep(2000); }
+			catch(InterruptedException e){ }
+		}
 	}
 	// Handles navigating to a point (allows the scanner to continue in case an unexpected obstacle appears (i.e. the other player)
 	private void navigate(){
 		Odometer.getPosition(pos);
-		double angle = wpIndex * 90;
-		LCD.drawInt((int)angle,0,3);
-		
-		nav.turnTo(angle,0);
-		while(!nav.isDone()){
-			try{ Thread.sleep(100); }
-			catch(InterruptedException e){ }
-		}
-		nav.stop();
-		
-		LCD.drawString("done Turn",0,4);
-		drawReadings();
+		ColorGather.doCorrection();
 		
 		nav.move();
-		Odometer.runCorrection(true);
-		int t=0;
-		while(t < 20){
-			Odometer.getPosition(pos);
-			drawReadings();
-			try{ Thread.sleep(200); }
-			catch(InterruptedException e){ }
-			t++;
-		}
+		
+		try{ Thread.sleep(3000); }
+		catch(InterruptedException e){ }
+		
 		nav.stop();
-		Odometer.runCorrection(false);
 
-		drawReadings();
-		wpIndex++;
-		if(wpIndex < waypoints.length)
-			navigate();
 	}
 	private void drawReadings(){
 		Odometer.getPosition(pos);
@@ -99,8 +82,8 @@ public class OdoCorrTest extends Thread{
 		LCD.drawString("Y:                        ",0,1);
 		LCD.drawString("T                         ",0,2);
 		
-		LCD.drawString((int)pos[0] + "|" + waypoints[wpIndex][0],2,0);
-		LCD.drawString((int)pos[1] + "|" + waypoints[wpIndex][1],2,1);
+		LCD.drawInt((int)pos[0],2,0);
+		LCD.drawInt((int)pos[1],2,1);
 		LCD.drawInt((int)pos[2],2,2);
 	}
 }

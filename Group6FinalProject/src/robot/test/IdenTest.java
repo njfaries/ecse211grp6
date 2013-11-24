@@ -46,10 +46,10 @@ public class IdenTest extends Thread{
 	}
 	public IdenTest(){		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
 		id = new Identify(cg, us, nav);

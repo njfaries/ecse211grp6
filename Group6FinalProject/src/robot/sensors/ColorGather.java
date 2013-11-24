@@ -1,8 +1,8 @@
 package robot.sensors;
 
+import robot.navigation.OdometryCorrection;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.ColorSensor.Color;
-import lejos.nxt.LCD;
 import lejos.util.Timer;
 import lejos.util.TimerListener;
 
@@ -20,10 +20,13 @@ public class ColorGather implements TimerListener {
 	private double currentColorLeft;
 	private double currentColorRight;
 	private ColorSensor csLeft, csRight, csBlockReader;
+	private OdometryCorrection corr;
+	private static Timer timer;
 	
 	private double[] lightReadingsLeft, lightReadingsRight, diffsLeft, diffsRight;
 	private int readingNum;
-	private boolean isOnLine;
+	private boolean leftOnLine, rightOnLine;
+	private static boolean doCorrection;
 	
 	/**
 	 * In order to gather color information. The ColorGather needs to have access to the three color sensors
@@ -32,21 +35,23 @@ public class ColorGather implements TimerListener {
 	 * @param csRight
 	 * @param csBlockReader
 	 */
-	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader) {
+	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader, OdometryCorrection corr) {
 		this.csLeft = csLeft;
 		this.csRight = csRight;
 		this.csBlockReader = csBlockReader;
+		this.corr = corr;
 		
 		lightReadingsLeft = new double[7];
 		lightReadingsRight = new double[7];
 		diffsLeft = new double[7];
 		diffsRight = new double[7];
 		readingNum = -1;
-		isOnLine = false;
-		
+		leftOnLine = false;
+		rightOnLine = false;
+		doCorrection = false;
 
 		
-		Timer timer = new Timer(50, this);
+		timer = new Timer(100, this);
 		timer.start();
 	}
 	
@@ -78,7 +83,26 @@ public class ColorGather implements TimerListener {
 		else{
 			diffsLeft[readingNum] = currentColorLeft - lightReadingsLeft[6];
 			diffsRight[readingNum] = currentColorRight - lightReadingsRight[6];
-		}		
+		}
+		
+		if(!doCorrection)
+			return;
+		
+		isOnLine(0);
+		isOnLine(1);
+		
+		if(leftOnLine){
+			long time = System.currentTimeMillis();
+			corr.update(0, time);
+		}
+		if(rightOnLine){
+			long time = System.currentTimeMillis();
+			corr.update(1, time);
+		}
+		if(!leftOnLine && !rightOnLine){
+			long time = System.currentTimeMillis();
+			corr.update(-1, time);
+		}
 	}
 	
 	/**
@@ -129,13 +153,13 @@ public class ColorGather implements TimerListener {
 				Math.abs(green - red) + Math.abs(green - blue) + 
 				Math.abs(blue - red) + Math.abs(blue - green);
 				
-		LCD.clear();
+/*		LCD.clear();
 		LCD.drawString("r:" + red + " g:" + green + " b:" + blue, 0,0);
 		LCD.drawString("r-g:" + (red - green) + " r-b:" + (red - blue), 0,1);
 		LCD.drawString("g-r:" + (green - red) + " g-b:" + (green - blue), 0,2);
 		LCD.drawString("b-r:" + (blue - red) + " b-g:" + (blue - green), 0,3);
 		LCD.drawString("avgerage:" + (int)( (red + green + blue) / 3 ) ,0,4);
-		LCD.drawString("sumOfAbs:" + sumOfAbsDiff ,0,5);
+		LCD.drawString("sumOfAbs:" + sumOfAbsDiff ,0,5);*/
 		try { Thread.sleep(500); }  catch (InterruptedException e) {}
 		
 		if(sumOfAbsDiff < WOODEN_BLOCK_THRESH)
@@ -152,11 +176,16 @@ public class ColorGather implements TimerListener {
 	 */
 	public boolean isOnLine(int sensor) {
 		double[] diffs = null;
+		boolean online = false;
 		
-		if(sensor == 0)
+		if(sensor == 0){
 			diffs = diffsLeft;
-		else
+			online = leftOnLine;
+		}
+		else{
 			diffs = diffsRight;
+			online = rightOnLine;
+		}
 				
 		// finds the average of the past 7 differences
 		double sumDiff = 0;
@@ -164,13 +193,41 @@ public class ColorGather implements TimerListener {
 		sumDiff = sumDiff / 7;
 		
 		// going on/off a line determined by the average of the past 7 light differences
-		if(!isOnLine && sumDiff < -LINE_THRESHOLD)
-			isOnLine = true;
-		else if(isOnLine && sumDiff > LINE_THRESHOLD)
-			isOnLine = false;
+		if(!online && sumDiff < -LINE_THRESHOLD)
+			online = true;
+		else if(online && sumDiff > LINE_THRESHOLD)
+			online = false;
 
-		LCD.drawString(sumDiff + "", 0, 4);
+		//LCD.drawString(sumDiff + "", 0, 4);
 		
-		return isOnLine;
+		if(sensor == 0)
+			leftOnLine = online;
+		else
+			rightOnLine = online;
+		
+		return online;
+	}
+	
+	/**
+	 * Sets environment for localization
+	 */
+	public static void doLocalization(){
+		timer.setDelay(20);
+	}
+	/**
+	 * Sets environment for correction
+	 */
+	public static void doCorrection(){
+		doCorrection = true;
+		timer.setDelay(20);
+	}
+	/**
+	 * Resets envrionment
+	 */
+	public static void stopCorrection(){
+		if(doCorrection){
+			doCorrection = false;
+			timer.setDelay(100);
+		}
 	}
 }

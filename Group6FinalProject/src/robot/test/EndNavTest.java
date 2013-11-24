@@ -35,7 +35,7 @@ public class EndNavTest extends Thread{
 		Map.addBlock(new double[]{50,50,50,50}, new double[]{70,70,70,70});
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
 		//new LCDInfo();

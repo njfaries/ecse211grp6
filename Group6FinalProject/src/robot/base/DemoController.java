@@ -90,7 +90,7 @@ public class DemoController extends Thread {
 		//new LCDInfo();
 
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
@@ -99,8 +99,7 @@ public class DemoController extends Thread {
 		corner = StartCorner.BOTTOM_LEFT;
 		loc = new Localization(us, cg, corner, nav);
 		
-		corrector = new OdometryCorrection(cg);
-		new Odometer(robo , null);
+		new Odometer(robo);
 
 		id = new Identify(cg, us, nav);
 
@@ -223,7 +222,7 @@ public class DemoController extends Thread {
 		LCD.clear();
 		LCD.drawString("nav1.0 end", 0, 4);
 		
-		nav.move();
+		//nav.move();
 		nav.travelTo(wp[0], wp[1]);
 		while (!us.flagObstruction()) {
 			//if the navigation is done no block has been found

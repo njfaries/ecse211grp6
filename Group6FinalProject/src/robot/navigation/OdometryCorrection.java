@@ -1,5 +1,6 @@
 package robot.navigation;
 
+import lejos.nxt.LCD;
 import robot.sensors.ColorGather;
 
 /**
@@ -11,10 +12,9 @@ import robot.sensors.ColorGather;
  */
 public class OdometryCorrection {
 	private static double WHEEL_RADIUS = 2.125;
-	private static double SENSOR_WIDTH = 4;
+	private static double WHEEL_SPEED = 269;
+	private static double SENSOR_WIDTH = 8;
 	private static double SENSOR_DISTANCE = 7;
-	
-	private ColorGather cg;
 	
 	private long leftTime, rightTime;
 	private boolean updateX, updateY, updateT, newLeftData, newRightData;
@@ -31,8 +31,7 @@ public class OdometryCorrection {
 	 * @param sensorWidth - The distance between the center of the two light sensor (constant)
 	 * @param sensorDist - The distance from the two light sensors to the robot's axis of rotation
 	 */
-	public OdometryCorrection(ColorGather colorGather){		
-		this.cg = colorGather;
+	public OdometryCorrection(){
 		updateX = false;
 		updateY = false;
 		updateT = false;
@@ -50,59 +49,55 @@ public class OdometryCorrection {
 	 * @param data - The array containing current x, y, and theta values. This array will be updated with corrected values if available.
 	 * @param speed - Forward unsigned speed of the robot (to be used in calculations)
 	 */
-	public void update(double[] pos, double speed){
-		long currTime = System.currentTimeMillis();
-		
+	public void update(int sensor, long time){
+		double pos[] = new double[3];
 		// Check if the left sensor is over a line and was not over a line on the previous iteration
 		// Record the time that the sensor crosses
-		if(cg.isOnLine(0) && !newLeftData){
-			leftTime = currTime;
+		if(sensor == 0 && !newLeftData){
+			leftTime = time;
 			newLeftData = true;
 		}
 		// Repeat for right sensor
-		if(cg.isOnLine(1) && !newRightData){
-			rightTime = currTime;
+		if(sensor == 1 && !newRightData){
+			rightTime = time;
 			newRightData = true;
 		}
 		
 		// If neither sensor is on the line line and there is recorded data for both sensors. Reset
-		if(!cg.isOnLine(0) && !cg.isOnLine(1) && newRightData && newLeftData){
+		if(sensor == -1 && newRightData && newLeftData){
 			newRightData = false;
 			newLeftData = false;
 		}
 		// Otherwise if there is recorded data for both sensors and one is over the line 
 		else if(newRightData && newLeftData){
-			getNewAngle(pos[2], speed, rightTime, leftTime);
+			Odometer.getPosition(pos);
+			LCD.drawString("both on line",0,7);
+			getNewAngle(pos[2], rightTime, leftTime);
 		}
+		else if(sensor == -1)
+			return;
 		
 		// If there is an update to to, get the new position
 		if(updateT){	
 			// Will set updateX, updateY, updateT to false in the case of a risky update
-			getNewPosition(pos[0], pos[1]);	
+			//LCD.drawString("update postion        ",0,7);
+			//getNewPosition(pos[0], pos[1]);	
 		}
+		else
+			return;
 		
-		// Update values
-		if(updateX){
-			pos[0] = this.newX;
-			updateX = false;
-		}
-		if(updateY){
-			pos[1] = this.newY;
-			updateY = false;
-		}
-		if(updateT){
-			pos[2] = this.newT;
-			updateT = false;
-		}
-
+		Odometer.setPosition(new double[]{newX, newY, newT}, new boolean[]{updateX, updateY, updateT});
+		updateX = false;
+		updateY = false;
+		updateT = false;
 	}
 	
 	// Gets the new angle based on the time between the crossing of both sensors, 
 	// the current speed, and the current approximate heading
-	private void getNewAngle(double oldAngle, double speed, long time1, long time2){
+	private void getNewAngle(double oldAngle, long time1, long time2){
 		dist = 0;
-		double timeDiff = time2 - time1 / 1000.0;
-		double distDeg = timeDiff * speed;
+		double timeDiff = time2 - time1 ;
+		double distDeg = timeDiff * WHEEL_SPEED / 1000.0;
 		this.dist = (2 * Math.PI * WHEEL_RADIUS) * (distDeg / 360.0);
 		
 		// gets the angle to the line (will always return < 90)
@@ -114,16 +109,19 @@ public class OdometryCorrection {
 			if((baseAngle + (i * 90)) > oldAngle - 15 && (baseAngle + (i * 90)) < oldAngle + 15)
 				this.newT = baseAngle + (i * 90);
 		}		
+		LCD.drawString((int)timeDiff + " " + (int)newT + "                    ", 0, 7);
 		
 		if(newT >= 0)
 			updateT = true;
 		else
 			updateT = false;
+		
 	}
 	
 	// Approximates the current position by determining if the robot is close to any particular
 	// gridline at recorded time of crossing. If two candidates exist, the position is not updated
 	private void getNewPosition(double oldX, double oldY){
+		LCD.drawString((int)newT + "", 0, 4);
 		
 		double adjustedX = oldX + (dist + SENSOR_DISTANCE) * Math.cos(Math.toRadians(newT));
 		double adjustedY = oldY + (dist + SENSOR_DISTANCE) * Math.sin(Math.toRadians(newT));
@@ -132,19 +130,21 @@ public class OdometryCorrection {
 		double lineErrorX = adjustedX % 30.48;
 		if(lineErrorX < 5 || lineErrorX > 25){
 			double lineDistX = Math.round(adjustedX / 30.48);
-			newX = (lineDistX * 30.48) + Math.abs(dist + SENSOR_DISTANCE) * Math.cos(Math.toDegrees(newT));
+			newX = (lineDistX * 30.48) + (Math.abs(dist) + SENSOR_DISTANCE) * Math.cos(Math.toDegrees(newT));
 			updateX = true;
+			LCD.drawString((int)newX + "", 0, 5);
 		}
 		
 		// Find if the error can be corrected with respect to a y line
 		double lineErrorY = adjustedY % 30.48;
 		if(lineErrorY < 5 || lineErrorY > 25){
 			double lineDistY = Math.round(adjustedY / 30.48);
-			newY = (lineDistY * 30.48) + Math.abs(dist + SENSOR_DISTANCE) * Math.sin(Math.toDegrees(newT));
+			newY = (lineDistY * 30.48) + (Math.abs(dist) + SENSOR_DISTANCE) * Math.sin(Math.toDegrees(newT));
 			updateY = true;
+			LCD.drawString((int)newX + "", 0, 6);
 		}
 		
-		// don't risk a bad update (will be true if the robot is close to an intersection)
+		// don't risk a bad update (will be true if the robot is close to multiple gridlines)
 		if(updateX && updateY){
 			updateX = false;
 			updateY = false;

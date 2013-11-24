@@ -59,7 +59,7 @@ public class ScanningTest extends Thread{
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		
 		//new LCDInfo();
 		

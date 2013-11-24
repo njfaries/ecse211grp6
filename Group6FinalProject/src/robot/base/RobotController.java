@@ -93,7 +93,7 @@ public class RobotController extends Thread {
 		new LCDInfo();
 
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
@@ -102,7 +102,7 @@ public class RobotController extends Thread {
 		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
 		
 		//corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
-		new Odometer(robo , corrector);
+		new Odometer(robo);
 
 		id = new Identify(cg, us, nav);
 

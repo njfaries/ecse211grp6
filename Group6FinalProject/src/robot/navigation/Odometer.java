@@ -1,4 +1,5 @@
 package robot.navigation;
+import robot.sensors.ColorGather;
 import lejos.util.Timer;
 import lejos.util.TimerListener;
 
@@ -14,13 +15,10 @@ public class Odometer implements TimerListener {
 	public static final int DEFAULT_PERIOD = 20;
 	
 	private TwoWheeledRobot robo;
-	private OdometryCorrection corrector;
 	
 	// position data
 	private static double x, y, theta;
 	private double[] oldDH = new double[2], dDH = new double[2];
-	
-	private static boolean runCorrection;
 	
 	// lock object for mutual exclusion
 	private static Object lock;
@@ -32,16 +30,14 @@ public class Odometer implements TimerListener {
 	 * @param rightMotor - The motor for the right wheel
 	 * @param corrector - The Odometry Correction being used
 	 */
-	public Odometer(TwoWheeledRobot robo, OdometryCorrection corrector) {
+	public Odometer(TwoWheeledRobot robo) {
 		x = 45.0;
 		y = 45.0;
 		
 		theta = 0;
 		lock = new Object();
-		runCorrection = false;
 		
 		this.robo = robo;
-		this.corrector = corrector;
 				
 		Timer timer = new Timer(DEFAULT_PERIOD, this);
 		timer.start();
@@ -60,23 +56,19 @@ public class Odometer implements TimerListener {
 			
 			x += dDH[0] * Math.cos(Math.toRadians(theta));
 			y += dDH[0] * Math.sin(Math.toRadians(theta));
-			
-			// Determines if the robot is moving straight. If so, attempt to do odometry correction
-			// note* only updates if robot has recently crossed a gridline.
-			if(runCorrection){
-				double[] data = new double[]{x,y,theta};
-				double lSpeed = robo.getLeftWheelSpeed();
-				double rSpeed = robo.getRightWheelSpeed();
-				if(lSpeed == rSpeed)
-					corrector.update(data, Math.abs(lSpeed));
-				x = data[0];
-				y = data[1];
-				theta = data[2];
-			}
 		}
 		
 		oldDH[0] += dDH[0];
 		oldDH[1] += dDH[1];
+		
+		double lSpeed = robo.getLeftWheelSpeed();
+		double rSpeed = robo.getRightWheelSpeed();
+		
+		if(lSpeed == rSpeed)
+			ColorGather.doLocalization();
+		else
+			ColorGather.stopCorrection();
+			
 	}
 
 	// Getters 
@@ -119,10 +111,6 @@ public class Odometer implements TimerListener {
 			if (update[2])
 				theta = position[2];
 		}
-	}
-	
-	public static void runCorrection(boolean run){
-		runCorrection = run;
 	}
 	
 	// static 'helper' methods

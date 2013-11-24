@@ -50,9 +50,9 @@ public class LocalizationTest {
 	
 	public LocalizationTest() {
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		Navigation2 nav = new Navigation2(robo);
-		ColorGather cg = new ColorGather(csLeft, csRight, csBlock);
+		ColorGather cg = new ColorGather(csLeft, csRight, csBlock, new OdometryCorrection());
 		USGather usg = new USGather(us);
 		
 		loc = new Localization(usg, cg, StartCorner.BOTTOM_LEFT, nav);

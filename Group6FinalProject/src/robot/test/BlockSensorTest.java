@@ -3,6 +3,7 @@ package robot.test;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.LCD;
 import lejos.nxt.SensorPort;
+import robot.navigation.OdometryCorrection;
 import robot.sensors.ColorGather;
 
 public class BlockSensorTest extends Thread {
@@ -16,7 +17,7 @@ public class BlockSensorTest extends Thread {
 		new BlockSensorTest();
 	}
 	public BlockSensorTest(){
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
 		this.start();
 	}
 	public void run(){

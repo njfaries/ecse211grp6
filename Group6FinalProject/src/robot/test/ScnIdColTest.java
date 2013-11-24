@@ -66,11 +66,11 @@ public class ScnIdColTest extends Thread{
 		collection.rotateCage(-330);
 		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		
 		id = new Identify(cg, us, nav);
 		
