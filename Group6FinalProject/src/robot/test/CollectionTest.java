@@ -25,13 +25,8 @@ public class CollectionTest extends Thread{
 	
 	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
 	
-	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
-	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
-	
 	private TwoWheeledRobot robo;
 	private USGather us;
-	private ColorGather cg;
 	private CollectionSystem collection;
 	private Navigation2 nav;
 	
@@ -45,10 +40,9 @@ public class CollectionTest extends Thread{
 	}
 	public CollectionTest(){		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo, null);
+		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
