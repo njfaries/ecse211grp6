@@ -134,11 +134,11 @@ public class Map {
 		if(sytrofoam)
 			currentBlock.setStyrofoam();
 	}
-	public static void buildNextPointWaypoints(double wpX, double wpY){
+	public static void buildNextPointWaypoints(double x, double y){
 		waypointXs = new ArrayList<Double>();
 		waypointYs = new ArrayList<Double>();
 		
-		findPathToWaypoint(wpX , wpY);
+		findPathToWaypoint(x , y);
 		
 		synchronized(lock){
 			newWaypoint = true;
@@ -150,6 +150,11 @@ public class Map {
 	 * Builds a waypoint list to get to the nearest un-identified block
 	 */
 	public static void buildNextBlockWaypoints(){
+		if(blocks.size() == 0){
+			newWaypoint = false;
+			return;
+		}
+		
 		waypointXs = new ArrayList<Double>();
 		waypointYs = new ArrayList<Double>();
 		

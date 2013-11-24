@@ -40,29 +40,14 @@ public class USGather implements TimerListener {
 		timer.start();
 	}
 	
-	public void testCoord() {
-		
-	}
-	
 	public void timedOut() {
 		synchronized(lock){
 			distance = getFilteredData();
 		}
 	}
 	
-	public void updateReadValues(double d) {
+	
 
-	}
-	
-	/**
-	 * Scans an array of values at a range and update an array of navigation options
-	 *  
-	 * @param range - The max distance at which to detect an object.
-	 */
-	public void scan(int range) {
-		
-	}
-	
 	//method to check for obstruction block when navigating to waypoint
 	public boolean flagObstruction() {
 		if(getRawDistance() < FLAG_THRESH) {

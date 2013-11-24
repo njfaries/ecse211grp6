@@ -30,14 +30,8 @@ public class ScanAnalysis {
 			}
 		}
 		
-		try{
-			// Parse filtered arrays
-			parseValues(tValues, rValuesFiltered);
-			Scan.scanParsed = true;
-		}
-		catch(Exception e){
-			//LCD.drawString(e.toString(), 0,0);
-		}
+		parseValues(tValues, rValuesFiltered);
+		//Scan.scanParsed = true;
 	}
 	// Parses the filtered data (calls itself recursively each time it finds an object)
 	private void parseValues(double[] tValues, double[] rValues){		

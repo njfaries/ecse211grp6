@@ -11,6 +11,8 @@ import robot.sensors.USGather;
 
 public class Scan {
 
+	private final int ANGLE_CORRECTION = 20;
+		
 	public static boolean scanParsed = true;
 	private static Object lock = new Object();
 	/**
@@ -28,14 +30,18 @@ public class Scan {
 		ArrayList<Double> rValues = new ArrayList<Double>();
 		
 		// keeps taking in data until the robot stops turning (i.e. the scan completes)
-		while(!nav.isDone()){	
-			Status.setStatus("Scanning");
+		while(!nav.isDone()){
+			LCD.clear();
+			LCD.drawString("scanning", 0, 5);
 			Odometer.getPosition(pos);
+			LCD.drawString("t: " + (int)pos[2],0,6);
 			double dist = us.getDistance();
-			double angle = (int)pos[2];
+			double angle = (int)pos[2] + ANGLE_CORRECTION;
 
-			if(dist > 60)
+			if(dist > 60) {
+				try { Thread.sleep(50); } catch (InterruptedException e) {}
 				continue;
+			}
 			if(tValues.contains(angle) && rValues.get(tValues.indexOf(angle)) != -1){
 				int i = tValues.indexOf(angle);
 				tValues.set(i, (rValues.get(i) + dist) / 2);
@@ -56,19 +62,24 @@ public class Scan {
 		double[] xArray = new double[tValues.size()];
 		double[] yArray = new double[rValues.size()];
 		Odometer.getPosition(pos);
-		
+		LCD.clear();
 		for(int i=0; i < tValues.size(); i++){
 			tArray[i] = tValues.get(i);
 			rArray[i] = rValues.get(i);
 			xArray[i] = pos[0] + rArray[i] * Math.cos(Math.toRadians(rArray[i]));
 			yArray[i] = pos[0] + rArray[i] * Math.sin(Math.toRadians(rArray[i]));
+			LCD.setPixel((int)(xArray[i] - pos[0])/4 + 64, (int)(yArray[i] - pos[1])/4 + 32, 1);
 		}
 		
 		Status.setStatus("" + tArray.length);
 		LCD.drawString((int)tArray.length + "",0,0);
 		
 		// Creates a new set of coordinates with the scan data
-		new ScanAnalysis(tArray, rArray);
+		synchronized(lock) {
+			new ScanAnalysis(tArray, rArray);
+		}
+		
+		//scanParsed = true;
 	}
 
 	/**

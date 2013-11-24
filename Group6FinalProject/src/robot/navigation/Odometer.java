@@ -31,8 +31,8 @@ public class Odometer implements TimerListener {
 	 * @param corrector - The Odometry Correction being used
 	 */
 	public Odometer(TwoWheeledRobot robo) {
-		x = 45.0;
-		y = 45.0;
+		x = 30.0;
+		y = 30.0;
 		
 		theta = 0;
 		lock = new Object();
@@ -120,4 +120,18 @@ public class Odometer implements TimerListener {
 		
 		return angle % 360.0;
 	}
+	
+	public static double requiredHeading(double xf, double yf) {
+		//helper method that returns the calculated required theta in degrees
+		double t = 0;
+		//finding change in x and y coords
+		synchronized(lock) {
+			double deltaX = xf - x;
+			double deltaY = yf - y;
+			t = Math.toDegrees(Math.atan2(deltaY,deltaX));
+		}
+		
+		//return the change in theta
+		return t;
+	}	
 }
