@@ -38,7 +38,7 @@ public class CollectionTest extends Thread{
 	private static FunctionType function = FunctionType.COLLECT;
 	
 	int distanceIndex = 0;
-	int blockCount = 1;
+	int blockCount = 0;
 	
 	public static void main(String[] args) {
 		new CollectionTest();
@@ -60,12 +60,16 @@ public class CollectionTest extends Thread{
 	// Runs all the control code (calling localization, navigation, identification, etc)
 	public void run(){
 		while(true){
-			if(function == FunctionType.COLLECT)
-				if (blockCount == 0)
+			if(function == FunctionType.COLLECT) {
+				if (blockCount == 0) {
 					collectFirstBlock();
-				else
+					blockCount++;
+				} else {
 					collect();
-			
+				}
+			} else if(function == FunctionType.IDLE) {
+				try {Thread.sleep(100);} catch(InterruptedException e) {}
+			}
 			try{
 				Thread.sleep(50);
 			}
@@ -110,6 +114,9 @@ public class CollectionTest extends Thread{
 	private void alignBlock() {
 		nav.move();
 		try {Thread.sleep(3000);} catch(InterruptedException e) {}
+		nav.stop();
+		nav.reverse();
+		while(us.getDistance() < 5);
 		nav.stop();
 	}
 }
