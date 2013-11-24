@@ -45,10 +45,10 @@ public class CollectionTest extends Thread{
 	}
 	public CollectionTest(){		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
+		cg = new ColorGather(csLeft, csRight, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo);
+		new Odometer(robo, null);
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
@@ -81,11 +81,11 @@ public class CollectionTest extends Thread{
 		
 		nav.move();
 		try { Thread.sleep(2000); } 
-		catch (InterruptedException e) { }
+		catch (InterruptedException e) {}
 		nav.stop();
 		
 		try { Thread.sleep(250); } 
-		catch (InterruptedException e) { }
+		catch (InterruptedException e) {}
 		
 		collection.closeCage();
 		collection.raiseCage();
@@ -94,16 +94,23 @@ public class CollectionTest extends Thread{
 	}
 	
 	private void collect() {
+		alignBlock();
 		collection.lowerCage();
 		collection.openCage();
 		nav.move();
-		try { Thread.sleep(500); }
-		catch (InterruptedException e) { }
+		try {Thread.sleep(500);}
+		catch (InterruptedException e) {}
 		nav.stop();
 		collection.closeCage();
 		collection.raiseCage();
 		
 		function = FunctionType.IDLE;
+	}
+	
+	private void alignBlock() {
+		nav.move();
+		try {Thread.sleep(3000);} catch(InterruptedException e) {}
+		nav.stop();
 	}
 }
 
