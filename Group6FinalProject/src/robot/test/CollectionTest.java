@@ -7,6 +7,7 @@ import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
 import lejos.nxt.SensorPort;
+import lejos.nxt.Sound;
 import lejos.nxt.UltrasonicSensor;
 
 /**
@@ -46,10 +47,10 @@ public class CollectionTest extends Thread{
 	}
 	public CollectionTest(){		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
+		cg = new ColorGather(csLeft, csRight, csBlockReader);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo);
+		new Odometer(robo, null);
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
@@ -120,7 +121,8 @@ public class CollectionTest extends Thread{
 		try {Thread.sleep(3000);} catch(InterruptedException e) {}
 		nav.stop();
 		nav.reverse();
-		while(us.getDistance() > 5);
+		try {Thread.sleep(50);} catch(InterruptedException e) {}
+		//while(us.getDistance() > 5);
 		nav.stop();
 	}
 }
