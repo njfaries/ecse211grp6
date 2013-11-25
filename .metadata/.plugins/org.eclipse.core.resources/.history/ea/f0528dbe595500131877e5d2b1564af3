@@ -1,0 +1,104 @@
+package robot.mapping;
+
+import lejos.nxt.LCD;
+import robot.navigation.Navigation2;
+import robot.navigation.Odometer;
+import robot.sensors.USGather;
+
+public class Scan2 {
+	public static boolean scanParsed = true;
+	
+	private Navigation2 nav;
+	private USGather us;
+	
+	public Scan2(Navigation2 nav, USGather us){
+		this.nav = nav;
+		this.us = us;
+	}
+	/**
+	 * Finds and returns the cetner value of the first block detected
+	 * @param nav - The Navigation class being used
+	 * @param us - The USGather class being used
+	 */
+	public double[] findBlock(double scanAngle){
+		LCD.clear();
+		LCD.drawString("scanning", 0, 5);
+		
+		double[] leftEdge = null;	
+		double[] rightEdge = null;
+		boolean blockFound = false;
+		double edgeDist = -1;
+		
+		// Creates empty array lists that data is added to
+		double[] pos = new double[3];
+		Odometer.getPosition(pos);
+		
+		// Performs a clockwise scan at an angle set by the input parameters
+		nav.turnTo(pos[2] + scanAngle, 1);
+		
+		// keeps taking in data until the robot stops turning (i.e. the scan completes)
+
+		
+		// If the scan starts facing a block, set the block found to true and set this distance to the edge distance
+		if(us.getDistance() < 60){
+			blockFound = true;
+			edgeDist = us.getDistance();
+		}
+		
+		// Keep turning Clockwise to find a block then find the right falling edge (or just the falling edge if the above condition is true)
+		while(!nav.isDone()){
+			Odometer.getPosition(pos);
+			double dist = us.getDistance();
+			double angle = pos[2];
+
+			// When finding a close distance
+			// If the search type is rising, latch this dist/angle to the rising edge array and search for a falling edge.
+			if(dist < 60 && !blockFound){
+				blockFound = true;
+				continue;
+			}
+			
+			// If the search type is falling, latch the current dist/angle to the falling edge array
+			// If a rising edge has already been found (i.e. the search did *not* begin while detecting an object) calculate the center and return this value
+			// Otherwise break the loop and continue
+			if((dist > edgeDist + 15 || dist < edgeDist - 15) && blockFound){
+				rightEdge = new double[]{dist, angle};		
+				break;		
+			}
+
+			try { Thread.sleep(50); } catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		// If the search completed and did not pick up anything, return null
+		// Otherwise, continue
+		if(!blockFound)
+			return null;
+	
+		// Reverse to find the left falling edge
+		nav.rotate(2);
+		// Sleep to make sure the right corner isn't picked up a second time
+		try { Thread.sleep(1000); } catch (InterruptedException e) {}
+		
+		Odometer.getPosition(pos);
+		double dist = us.getDistance();
+		double angle = pos[2];
+		
+		while(dist < edgeDist + 15 && dist > edgeDist - 15){
+			leftEdge = new double[]{dist, angle};
+			dist = us.getDistance();
+			angle = pos[2];
+			try { Thread.sleep(50); } catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		// Calculate the center of the block based on the rising/falling edges
+		return findCenter(leftEdge, rightEdge);
+	}
+	private double[] findCenter(double[] rtLeft, double[] rtRight){
+		double[] xyLeft = new double[]{rtLeft[0] * Math.cos(Math.toRadians(rtLeft[1])), rtLeft[0] * Math.sin(Math.toRadians(rtLeft[1]))};
+		double[] xyRight = new double[]{rtRight[0] * Math.cos(Math.toRadians(rtRight[1])), rtRight[0] * Math.sin(Math.toRadians(rtRight[1]))};
+		
+		return new double[]{(xyLeft[0] + xyRight[0]) / 2, (xyLeft[1] + xyRight[1]) / 2};
+	}
+}

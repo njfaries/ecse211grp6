@@ -10,15 +10,18 @@ import lejos.util.TimerListener;
  * @version 1.0.1
  * @since 2013-11-04
  */
-public class Navigation2 extends Navigation implements TimerListener {
+public class Navigation2 implements TimerListener {
 	private final double FORWARD_SPEED = 10;
 	private final double ROTATION_SPEED = 35;
-	private final double ANGLE_ERROR_THRESH = 2;
+	private final double TURNING_ANGLE_ERROR_THRESH = 2;
+	private final double MOVING_ANGLE_ERROR_THRESH = 5;
 	private final double DIST_ERROR_THRESH = 2;
 	
 	private TwoWheeledRobot robo;
 	//will need getters and setters
 	private double destinationX, destinationY, destinationT, startX, startY;
+	private double angleError = TURNING_ANGLE_ERROR_THRESH;
+	
 	private int turnDirection;
 	
 	private double[] pos = new double[3];
@@ -37,7 +40,6 @@ public class Navigation2 extends Navigation implements TimerListener {
 	 * @param rightMotor - Motor for the right wheel
 	 */
 	public Navigation2(TwoWheeledRobot robo) {
-		super(robo);
 		this.robo = robo;
 		
 		Timer timer = new Timer(25, this);
@@ -64,7 +66,7 @@ public class Navigation2 extends Navigation implements TimerListener {
 		if(destinationT == -1)
 			dT = getAngle() - pos[2];
 		
-		if(Math.abs(dT) > ANGLE_ERROR_THRESH)
+		if(Math.abs(dT) > angleError)
 			turning = true;
 		else{
 			turning = false;
@@ -154,6 +156,8 @@ public class Navigation2 extends Navigation implements TimerListener {
 		synchronized(lock){
 			done = false;
 		}
+		
+		angleError = MOVING_ANGLE_ERROR_THRESH;
 	}
 		
 	/**
@@ -179,6 +183,8 @@ public class Navigation2 extends Navigation implements TimerListener {
 		synchronized(lock){
 			done = false;
 		}
+		
+		angleError = TURNING_ANGLE_ERROR_THRESH;
 	}
 	
 	/**
@@ -221,12 +227,20 @@ public class Navigation2 extends Navigation implements TimerListener {
 		}
 		
 	}
-	public void rotate(int direction){
+	/**
+	 * CW - 0
+	 * CCW - 1
+	 * @param direction
+	 */
+	public void rotate(int direction, double speed){
+		double rotationSpeed = ROTATION_SPEED;
+		if(speed > 0)
+			rotationSpeed = speed;
 		synchronized(lock){
 			if(direction == 0)
-				robo.setSpeeds(0, ROTATION_SPEED);
+				robo.setSpeeds(0, rotationSpeed);
 			else
-				robo.setSpeeds(0, -ROTATION_SPEED);
+				robo.setSpeeds(0, -rotationSpeed);
 		
 			robo.turn(direction);
 		}

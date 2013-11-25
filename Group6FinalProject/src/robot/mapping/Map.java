@@ -48,10 +48,10 @@ public class Map {
 		avoidPoints = redZone;
 		
 		endZone.setSize(endPoints[2] - endPoints[0] ,endPoints[3] - endPoints[1]);
-		endZone.setLocation(endPoints[0] + 30, endPoints[1] + 30);
+		endZone.setLocation(endPoints[0], endPoints[1]);
 		
 		avoidZone.setSize(avoidPoints[2] - avoidPoints[0] ,avoidPoints[3] - avoidPoints[1]);
-		avoidZone.setLocation(avoidPoints[0] + 30, avoidPoints[1] + 30);
+		avoidZone.setLocation(avoidPoints[0], avoidPoints[1]);
 	}
 	
 	// Called when the next block to investigated must be found
@@ -125,6 +125,15 @@ public class Map {
 	}
 	
 	// Setters
+	public static void addBlock(double r, double t){
+		double[] pos = new double[3];
+		Odometer.getPosition(pos);
+		
+		double centerX = pos[0] + r * Math.cos(Math.toRadians(t));
+		double centerY = pos[1] + r * Math.sin(Math.toRadians(t));
+		
+		blocks.add(new Block(centerX, centerY));
+	}
 	/**
 	 * Sets the current block as having been checked. Also sets the block as being styrofoam or not
 	 * @param sytrofoam - whether or not the block is styrofoam
@@ -236,6 +245,13 @@ public class Map {
 	}
 	
 	// Getters
+	public static boolean checkPoint(double x, double y){
+		for(int i=0; i<blocks.size(); i++){
+			if(blocks.get(i).containsPoint(x, y))
+				return true;
+		}
+		return false;
+	}
 	/**
 	 * Checks if a new waypoint is available for the navigator to navigate to.
 	 * @return boolean: newWaypoint
@@ -258,6 +274,9 @@ public class Map {
 		}
 	}
 
+	public static double[] getEndCenter(){
+		return new double[]{endPoints[2] - endPoints[0], endPoints[3] - endPoints[1]};
+	}
 	public static int getBlockCount(){
 		return blocks.size();
 	}

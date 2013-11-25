@@ -65,16 +65,64 @@ public class OdoCorrTest extends Thread{
 	}
 	// Handles navigating to a point (allows the scanner to continue in case an unexpected obstacle appears (i.e. the other player)
 	private void navigate(){
-		Odometer.getPosition(pos);
-		ColorGather.doCorrection();
-		
+		// GOTO 135,45
 		nav.move();
-		
-		try{ Thread.sleep(3000); }
+		try{ Thread.sleep(6000); }
 		catch(InterruptedException e){ }
-		
+		drawReadings();
 		nav.stop();
-
+		
+		Odometer.getPosition(pos);
+		
+		nav.turnTo(90,0);
+		while(!nav.isDone()){
+			try{ Thread.sleep(500); }
+			catch(InterruptedException e){ }
+		}
+		drawReadings();
+		nav.stop();
+		
+		// GOTO 135, 135
+		nav.move();
+		try{ Thread.sleep(6000); }
+		catch(InterruptedException e){ }
+		drawReadings();
+		nav.stop();
+		
+		Odometer.getPosition(pos);
+		
+		nav.turnTo(180,0);
+		while(!nav.isDone()){
+			try{ Thread.sleep(500); }
+			catch(InterruptedException e){ }
+		}
+		drawReadings();
+		nav.stop();
+		
+		// GOTO 45,135
+		nav.move();
+		try{ Thread.sleep(6000); }
+		catch(InterruptedException e){ }
+		drawReadings();
+		nav.stop();
+		
+		Odometer.getPosition(pos);
+		
+		nav.turnTo(270,0);
+		while(!nav.isDone()){
+			try{ Thread.sleep(500); }
+			catch(InterruptedException e){ }
+		}
+		drawReadings();
+		nav.stop();
+		
+		// GOTO 45,45
+		nav.move();
+		try{ Thread.sleep(6000); }
+		catch(InterruptedException e){ }
+		drawReadings();
+		nav.stop();
+		
 	}
 	private void drawReadings(){
 		Odometer.getPosition(pos);

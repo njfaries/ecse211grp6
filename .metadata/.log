@@ -324,3 +324,13 @@ org.eclipse.swt.SWTException: Failed to execute runnable (java.lang.OutOfMemoryE
 	at org.eclipse.equinox.launcher.Main.basicRun(Main.java:591)
 	at org.eclipse.equinox.launcher.Main.run(Main.java:1450)
 Caused by: java.lang.OutOfMemoryError: Requested array size exceeds VM limit
+
+!ENTRY org.eclipse.ui 4 0 2013-11-24 14:14:48.655
+!MESSAGE Unhandled event loop exception
+!STACK 0
+java.lang.OutOfMemoryError: Requested array size exceeds VM limit
+
+!ENTRY org.eclipse.ui 4 0 2013-11-24 14:18:42.266
+!MESSAGE Unhandled event loop exception
+!STACK 0
+java.lang.OutOfMemoryError: Requested array size exceeds VM limit

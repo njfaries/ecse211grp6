@@ -1,5 +1,4 @@
 package robot.sensors;
-import java.util.Arrays;
 
 import robot.navigation.Odometer;
 import lejos.util.Timer;
@@ -59,7 +58,7 @@ public class USGather implements TimerListener {
 	}
 	
 	//getFilteredData will return an int after filtering out 255 values
-	private int getFilteredData() {
+	public int getFilteredData() {
 		filter = true;
 		int filterControl = 0;
 			
@@ -97,7 +96,7 @@ public class USGather implements TimerListener {
 		double readY = y + reading*Math.sin(Math.toRadians(theta));
 		//checking if coordinate is a wall value
 		if(readY < WALL_ERROR || readY > 240 - WALL_ERROR || readX < WALL_ERROR || readX > 240 - WALL_ERROR) { 
-			reading = 200; 
+			reading = -1; 
 		}
 		//checking if coordinate is a block found ???
 

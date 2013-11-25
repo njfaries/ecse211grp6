@@ -8,6 +8,7 @@ import robot.collection.*;
 import robot.localization.Localization;
 import robot.mapping.Map;
 import robot.mapping.Scan;
+import robot.mapping.Scan2;
 import robot.navigation.*;
 import robot.sensors.*;
 import robot.test.IdenCollTest.FunctionType;
@@ -31,7 +32,7 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class DemoController extends Thread {
 	public enum FunctionType {
-		IDLE, RECEIVE, LOCALIZE, INITIAL_SEARCH, SEARCH, BLOCK_NAVIGATE, POINT_NAVIGATE, IDENTIFY, COLLECT, END_NAVIGATE, RELEASE
+		IDLE, RECEIVE, LOCALIZE, INITIAL_SEARCH, SEARCH, FIND_BLOCK, FIND_MORE, APPROACH_BLOCK, BLOCK_NAVIGATE, POINT_NAVIGATE, IDENTIFY, COLLECT, END_NAVIGATE, RELEASE
 	};
 
 	private static long gameTime = 300000;
@@ -53,10 +54,10 @@ public class DemoController extends Thread {
 	
 	private Navigation2 nav;
 	private TwoWheeledRobot robo;
-	private OdometryCorrection corrector;
 	
 	private CollectionSystem collection;
 	private Identify id;
+	private Scan2 scan;
 	
 	private FunctionType function = FunctionType.INITIAL_SEARCH;
 	
@@ -70,7 +71,7 @@ public class DemoController extends Thread {
 	
 	StartCorner corner = StartCorner.BOTTOM_LEFT;
 	PlayerRole role = PlayerRole.BUILDER;
-	int[] greenZone = new int[] {90,90,120,120};
+	int[] greenZone = new int[] {60,90,90,120};
 	int[] redZone = new int[4];
 	
 	public static void main(String[] args) {
@@ -95,6 +96,7 @@ public class DemoController extends Thread {
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
 		
+		scan = new Scan2(nav, us);
 		//need to construct localization with transmission.startingCorner
 		corner = StartCorner.BOTTOM_LEFT;
 		loc = new Localization(us, cg, corner, nav);
@@ -117,7 +119,7 @@ public class DemoController extends Thread {
 			if(elapsedTime > gameTime - 30000 && function != FunctionType.END_NAVIGATE)
 				 function = FunctionType.END_NAVIGATE;
 				
-			LCD.clear();
+			//LCD.clear();
 			if (function == FunctionType.LOCALIZE)
 				localize();
 			else if (function == FunctionType.INITIAL_SEARCH)
@@ -126,6 +128,12 @@ public class DemoController extends Thread {
 				Odometer.getPosition(pos);
 				search(pos[2], pos[2] + 350, 1);
 			}
+			else if (function == FunctionType.FIND_BLOCK)
+				search(0, 90, -1);
+			else if (function == FunctionType.APPROACH_BLOCK)
+				approachBlock();
+			else if (function == FunctionType.FIND_MORE)
+				findNextBlock();
 			else if (function == FunctionType.BLOCK_NAVIGATE)
 				navigateToBlock();
 			else if (function == FunctionType.POINT_NAVIGATE)
@@ -172,6 +180,38 @@ public class DemoController extends Thread {
 	}
 
 	// Search method (performs scans)
+	private void search(double fromAngle, double toAngle, int direction){
+		LCD.drawString("Searching",0,0);
+		
+		nav.turnTo(fromAngle, 0);
+		while(!nav.isDone()){
+			try{Thread.sleep(400);} catch(InterruptedException e){ }
+			
+		}
+		nav.stop();
+		
+		double[] newBlock = scan.findBlock(toAngle, direction);
+		
+		if(newBlock == null){
+			function = FunctionType.POINT_NAVIGATE;
+			return;
+		}
+		
+		LCD.drawString("r:" + (int)newBlock[0] + ", t:" + (int)newBlock[1], 0, 5);
+		
+		Odometer.getPosition(pos);
+		
+		nav.turnTo(newBlock[1], 0);
+		while(!nav.isDone()){
+			try{Thread.sleep(400);} catch(InterruptedException e){ }
+			
+		}
+		nav.stop();
+		
+		function = FunctionType.APPROACH_BLOCK;
+	}
+	/*
+	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle, int direction) {
 		if(fromAngle < 0)
 			fromAngle += 360;
@@ -186,20 +226,55 @@ public class DemoController extends Thread {
 		nav.turnTo(toAngle, direction);
 		
 		new Scan(nav, us);
-		/*
-		LCD.drawString("parsing", 0, 4);
-		while (!Scan.scanParsed()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}*/
 		LCD.drawString("search done", 0, 4);
 		
 		Map.cleanBlocks();
 		Map.buildNextBlockWaypoints();
 		if (Map.hasNewWaypoint()) function = FunctionType.BLOCK_NAVIGATE;
 		else function = FunctionType.POINT_NAVIGATE;
+	}*/
+	private void approachBlock(){
+		nav.move();
+		double dist = us.getRawDistance() / 2;
+		
+		int counter = 0;
+		while(!us.flagObstruction()){
+			if(dist > 60 && counter >= 10){
+				nav.stop();
+				function = FunctionType.FIND_BLOCK;
+				return;
+			}
+			else if(dist > 60)
+				counter++;
+			try{Thread.sleep(30);} catch(InterruptedException e){ }
+			dist = us.getRawDistance() / 2;
+		}
+		nav.stop();
+		
+		function = FunctionType.IDENTIFY;
 	}
-
+	private void findNextBlock(){
+/*		nav.move();
+		try { Thread.sleep(500); } 
+		catch (InterruptedException e) { }
+		nav.stop();*/
+		
+		Odometer.getPosition(pos);
+		double turnAngle = pos[2] + 45;
+		if(turnAngle > 360)
+			turnAngle -= 360;
+		nav.turnTo(turnAngle, 0);
+		while (!nav.isDone()) {
+			try { Thread.sleep(400); } 
+			catch (InterruptedException e) { }
+		}
+		nav.stop();
+		Odometer.getPosition(pos);
+		turnAngle = pos[2] + 240;
+		if(turnAngle > 360)
+			turnAngle -= 360;
+		this.search(pos[2], turnAngle, 1);
+	}
 	// Handles navigating to a block (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToBlock() {
@@ -217,10 +292,6 @@ public class DemoController extends Thread {
 		}
 		
 		nav.stop();
-		
-		LCD.clear();
-		LCD.drawString("nav1.0 end", 0, 4);
-		
 		//nav.move();
 		nav.travelTo(wp[0], wp[1]);
 		while (!us.flagObstruction()) {
@@ -232,7 +303,7 @@ public class DemoController extends Thread {
 				catch(InterruptedException e){ }
 				nav.stop();
 				
-				nav.rotate(1);
+				nav.rotate(1, 0);
 				while(!us.flagObstruction()){
 					try{ Thread.sleep(100); }
 					catch(InterruptedException e){ }
@@ -249,21 +320,12 @@ public class DemoController extends Thread {
 		
 		nav.stop();
 		
-		LCD.clear();
-		LCD.drawString("nav1.1 end", 0, 4);
-		
 		Map.waypointReached();
-		
-		LCD.clear();
-		LCD.drawString("nav1.2 end", 0, 4);
 		
 		if(Map.hasNewWaypoint())
 			function = FunctionType.BLOCK_NAVIGATE;
 		else
 			function = FunctionType.IDENTIFY;
-		
-		LCD.clear();
-		LCD.drawString("nav1.3 end", 0, 4);
 	}
 
 	// Handles the navigation to the end
@@ -287,25 +349,52 @@ public class DemoController extends Thread {
 	// Handles navigating to a point (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToNextPoint() {
-		LCD.drawString("navigate2", 0, 4);
+		LCD.clear();
+		LCD.drawString("navigate2", 0, 0);
 		
-		//build a way point based on the heading to the green zone
+		Odometer.getPosition(pos);
+		double[] endZone = Map.getEndCenter();
+		
+		// Calculate Heading
+		double heading = Math.toDegrees(Math.atan2(endZone[1] - pos[1], endZone[0] - pos[0]));
+		if(heading < 0)
+			heading += 360;
+		heading = heading % 360;
+		LCD.drawString("ex:" + (int)endZone[0] + " ey:" + (int)endZone[1] + " h:" + heading, 0,1);
+		
+		// Find offsets
+		double xOffset = 45 * Math.cos(Math.toRadians(heading));
+		double yOffset = 45 * Math.cos(Math.toRadians(heading));
+		
+		Map.buildNextPointWaypoints(pos[0] + xOffset, pos[1] + yOffset);
+		
+/*		//build a way point based on the heading to the green zone
 		double tToGreen = Odometer.requiredHeading((greenZone[2] + greenZone[0]) / 2.0, (greenZone[3] + greenZone[1]) / 2.0);
 		if(tToGreen >= 0 && tToGreen < 90) Map.buildNextPointWaypoints(pos[0] + 61,pos[1] + 61);
 		else if(tToGreen >= 90 && tToGreen < 180) Map.buildNextPointWaypoints(pos[0] - 61, pos[1] + 61);
 		else if(tToGreen >= 180 && tToGreen < 270) Map.buildNextPointWaypoints(pos[0] - 61, pos[1] - 61);
-		else if(tToGreen >= 270 && tToGreen < 360) Map.buildNextPointWaypoints(pos[0] + 61, pos[1] - 61);
+		else if(tToGreen >= 270 && tToGreen < 360) Map.buildNextPointWaypoints(pos[0] + 61, pos[1] - 61);*/
 		
 		while(Map.hasNewWaypoint()){
 			double[] wp = new double[2];
 			
 			Map.getWaypoint(wp);
 			
-			LCD.drawString((int)wp[0] + "|" + (int)wp[1],0,7);
+			//LCD.drawString((int)wp[0] + "|" + (int)wp[1],0,2);
+			Odometer.getPosition(pos);
+			double newHeading = Math.toDegrees(Math.atan2(wp[1] - pos[1], wp[0] - pos[0]));
 			
-			nav.travelTo(wp[0], wp[1]);
+			nav.turnTo(newHeading, 0);
 			while (!nav.isDone()) {
 				try { Thread.sleep(400); } 
+				catch (InterruptedException e) { }
+			}
+			nav.stop();
+			
+			nav.move();
+			while (Math.abs(pos[0] - wp[0]) > 5 || Math.abs(pos[1] - wp[1]) > 5) {
+				Odometer.getPosition(pos);
+				try { Thread.sleep(50); } 
 				catch (InterruptedException e) { }
 			}
 			nav.stop();
@@ -323,20 +412,23 @@ public class DemoController extends Thread {
 		// if the block is blue collect it
 		if (id.isBlue()) {
 			LCD.drawString("blue", 0,7);
-			Map.blockChecked(true);
 			function = FunctionType.COLLECT;
 		}
 		
 		// else the robot has backed up and does a search
 		else {
 			LCD.drawString("not blue", 0,7);
-			Map.blockChecked(false);
+			Odometer.getPosition(pos);
+			Map.addBlock(us.getFilteredData() / 2, pos[2]);
+			
+			function = FunctionType.FIND_MORE;
+/*			Map.blockChecked(false);
 			Map.buildNextBlockWaypoints();
 			
 			if(Map.hasNewWaypoint())
 				function = FunctionType.BLOCK_NAVIGATE;
 			else
-				function = FunctionType.POINT_NAVIGATE;
+				function = FunctionType.POINT_NAVIGATE;*/
 		}	
 	}
 
@@ -347,7 +439,7 @@ public class DemoController extends Thread {
 		collection.openCage();
 		
 		nav.move();
-		try { Thread.sleep(2500); } 
+		try { Thread.sleep(3500); } 
 		catch (InterruptedException e) { }
 		nav.stop();
 		
@@ -357,7 +449,7 @@ public class DemoController extends Thread {
 		collection.closeCage();
 		collection.raiseCage();
 
-		function = FunctionType.END_NAVIGATE;
+		function = FunctionType.SEARCH;
 	}
 	// Releases the entire stack (only done at the end of the match)
 	private void release() {

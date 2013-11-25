@@ -1,6 +1,7 @@
 package robot.collection;
 
 import robot.navigation.Navigation;
+import robot.navigation.Navigation2;
 import lejos.nxt.NXTRegulatedMotor;
 
 /**
@@ -15,11 +16,11 @@ public class CollectionSystem {
 	
     private static final int CLAW_SPEED = 150; //speed in degrees per second
     private static final int CLAW_TIME = 3300; //time in ms
-    private static final int RAISE_TIME = 2000; //time in ms
+    private static final int RAISE_TIME = 1500; //time in ms
     private static final int OPEN_TIME = 1300; //time in ms
     
 	private NXTRegulatedMotor cageMotor;
-	private Navigation nav;
+	private Navigation2 nav;
 	
 	/**
 	 * The collection system requires access to the motor controlling the cage in order to collect the block. It also
@@ -27,7 +28,7 @@ public class CollectionSystem {
 	 * @param cageMotor - The motor controlling the cage/claw
 	 * @param nav - The Navigation class being used
 	 */
-	public CollectionSystem(NXTRegulatedMotor cageMotor, Navigation nav) {
+	public CollectionSystem(NXTRegulatedMotor cageMotor, Navigation2 nav) {
 		this.cageMotor = cageMotor;
 		this.nav = nav;
 		this.cageMotor.setSpeed(CLAW_SPEED);

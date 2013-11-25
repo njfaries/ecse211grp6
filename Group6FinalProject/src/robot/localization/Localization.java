@@ -77,7 +77,7 @@ public class Localization {
 		}
 		nav.stop();*/
              
-		nav.rotate(0);
+		nav.rotate(0, 50);
 		while(true) {        //while still localizing, may put bool variable here later.                        
 			if (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
 				nav.stop(); 
@@ -93,7 +93,7 @@ public class Localization {
 				}
 				
                 //been changed) then set angleA and reverse the direction.                                                                                            //The sleep is to ensure that the same edge is not picked
-				nav.rotate(1);
+				nav.rotate(1, 50);
 				try { Thread.sleep(1000); } catch (InterruptedException e) {}        //up again.
 			}
 			
@@ -118,7 +118,7 @@ public class Localization {
                 
                 boolean isOnLine = false;
                 
-                nav.rotate(0);
+                nav.rotate(0, 50);
                 while(counter < 4) {
                         if (colorGather.isOnLine(0) && !isOnLine) {				//0 = left sensor on robot
                                 Odometer.getPosition(array);

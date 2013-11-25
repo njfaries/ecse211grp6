@@ -51,6 +51,10 @@ public class OdometryCorrection {
 	 * @param speed - Forward unsigned speed of the robot (to be used in calculations)
 	 */
 	public void update(int sensor, long time){
+		newX = 0;
+		newY = 0;
+		newT = 0;
+		
 		double pos[] = new double[3];
 		// Check if the left sensor is over a line and was not over a line on the previous iteration
 		// Record the time that the sensor crosses
@@ -73,7 +77,7 @@ public class OdometryCorrection {
 		else if(newRightData && newLeftData){
 			Odometer.getPosition(pos);
 			LCD.drawString("both on line",0,7);
-			getNewAngle(pos[2], rightTime, leftTime);
+			getNewAngle(pos[2], leftTime, rightTime);
 		}
 		else if(sensor == -1)
 			return;
@@ -82,11 +86,12 @@ public class OdometryCorrection {
 		if(updateT){	
 			// Will set updateX, updateY, updateT to false in the case of a risky update
 			//LCD.drawString("update postion        ",0,7);
-			//getNewPosition(pos[0], pos[1]);	
+			getNewPosition(pos[0], pos[1]);	
 		}
 		else
 			return;
 		
+		LCD.drawString((int)newX + " " + (int)newY + " " + (int)newT + "                    ", 0, 6);
 		Odometer.setPosition(new double[]{newX, newY, newT}, new boolean[]{updateX, updateY, updateT});
 		updateX = false;
 		updateY = false;
@@ -103,6 +108,8 @@ public class OdometryCorrection {
 		
 		// gets the angle to the line (will always return < 90)
 		double baseAngle = Math.toDegrees(Math.atan2(dist, SENSOR_WIDTH));
+		if(time2 < time1)
+			baseAngle = -baseAngle;
 		
 		newT = -1;
 		// Loops to find the most appropriate angle
@@ -131,7 +138,7 @@ public class OdometryCorrection {
 			double lineDistX = Math.round(adjustedX / 30.48);
 			newX = (lineDistX * 30.48) + (Math.abs(dist) + SENSOR_DISTANCE) * Math.cos(Math.toDegrees(newT));
 			updateX = true;
-			LCD.drawString((int)newX + "", 0, 5);
+			//LCD.drawString((int)newX + "", 0, 5);
 		}
 		
 		// Find if the error can be corrected with respect to a y line
@@ -140,10 +147,10 @@ public class OdometryCorrection {
 			double lineDistY = Math.round(adjustedY / 30.48);
 			newY = (lineDistY * 30.48) + (Math.abs(dist) + SENSOR_DISTANCE) * Math.sin(Math.toDegrees(newT));
 			updateY = true;
-			LCD.drawString((int)newY + "", 0, 6);
+			//LCD.drawString((int)newY + "", 0, 6);
 		}
 		
-		LCD.drawString((int)lineErrorX + "|" + (int)lineErrorY,0,4);
+		//LCD.drawString((int)lineErrorX + "|" + (int)lineErrorY,0,4);
 		// don't risk a bad update (will be true if the robot is close to multiple gridlines)
 		if(updateX && updateY){
 			updateX = false;

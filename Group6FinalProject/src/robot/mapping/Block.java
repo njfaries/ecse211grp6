@@ -14,8 +14,8 @@ public class Block {
 	
 	private double centerX, centerY;
 	
-	private boolean investigated;
-	private boolean isStyrofoam;
+	private boolean investigated = false;
+	private boolean isStyrofoam = false;
 	
 	private Rectangle2D bounds;
 	double[] pos;
@@ -34,12 +34,13 @@ public class Block {
 		
 		findCenter();
 		
-		LCD.setPixel((int)centerX, (int)centerY, 1);
+		bounds = new Rectangle2D.Double(centerX - 15, centerY - 15, 30, 30);
+	}
+	public Block(double centerX, double centerY){
+		this.centerX = centerX;
+		this.centerY = centerY;
 		
-		bounds = new Rectangle2D.Double(centerX + 15, centerY + 15, 30, 30);
-		
-		investigated = false;
-		isStyrofoam = false;
+		bounds = new Rectangle2D.Double(centerX - 15, centerY - 15, 30, 30);
 	}
 	// Averages the points to find the block's center
 	private void findCenter(){

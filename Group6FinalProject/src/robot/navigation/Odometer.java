@@ -14,7 +14,7 @@ public class Odometer implements TimerListener {
 	
 	public static final int DEFAULT_PERIOD = 20;
 	
-	private TwoWheeledRobot robo;
+	private static TwoWheeledRobot robo;
 	
 	// position data
 	private static double x, y, theta;
@@ -30,14 +30,14 @@ public class Odometer implements TimerListener {
 	 * @param rightMotor - The motor for the right wheel
 	 * @param corrector - The Odometry Correction being used
 	 */
-	public Odometer(TwoWheeledRobot robo) {
+	public Odometer(TwoWheeledRobot twoWheelRobo) {
 		x = 30.0;
 		y = 30.0;
 		
 		theta = 0;
 		lock = new Object();
 		
-		this.robo = robo;
+		robo = twoWheelRobo;
 				
 		Timer timer = new Timer(DEFAULT_PERIOD, this);
 		timer.start();
@@ -59,16 +59,7 @@ public class Odometer implements TimerListener {
 		}
 		
 		oldDH[0] += dDH[0];
-		oldDH[1] += dDH[1];
-		
-		double lSpeed = robo.getLeftWheelSpeed();
-		double rSpeed = robo.getRightWheelSpeed();
-		
-		if(lSpeed == rSpeed)
-			ColorGather.doLocalization();
-		else
-			ColorGather.stopCorrection();
-			
+		oldDH[1] += dDH[1];	
 	}
 
 	// Getters 
@@ -134,4 +125,10 @@ public class Odometer implements TimerListener {
 		//return the change in theta
 		return t;
 	}	
+	public static double getLeftWheelSpeed(){
+		return robo.getLeftWheelSpeed();
+	}
+	public static double getRightWheelSpeed(){
+		return robo.getRightWheelSpeed();
+	}
 }
