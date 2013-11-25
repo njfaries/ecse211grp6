@@ -65,8 +65,8 @@ public class DemoController extends Thread {
 	private int maxBlocks = 2;
 	private long startTime = 0;
 	private long elapsedTime = 0;
-	private final int INTIAL_CAGE_ROTATION = -450;
-
+	private final int INTIAL_CAGE_ROTATION = -435;
+	
 	private double[] pos = new double[3];
 	
 	StartCorner corner = StartCorner.BOTTOM_LEFT;
@@ -87,7 +87,7 @@ public class DemoController extends Thread {
 		
 		//receive();
 		
-		new Map(role,  redZone, new int[4]);
+		new Map(role,  redZone, greenZone);
 		//new LCDInfo();
 
 		us = new USGather(usFront);
@@ -128,10 +128,10 @@ public class DemoController extends Thread {
 				Odometer.getPosition(pos);
 				search(pos[2], pos[2] + 350, 1);
 			}
-			else if (function == FunctionType.FIND_BLOCK)
-				search(0, 90, -1);
-			else if (function == FunctionType.APPROACH_BLOCK)
-				approachBlock();
+			else if (function == FunctionType.FIND_BLOCK){
+				Odometer.getPosition(pos);
+				search(pos[3] - 45, pos[3] + 45 , 1);
+			}
 			else if (function == FunctionType.FIND_MORE)
 				findNextBlock();
 			else if (function == FunctionType.BLOCK_NAVIGATE)
@@ -181,6 +181,7 @@ public class DemoController extends Thread {
 
 	// Search method (performs scans)
 	private void search(double fromAngle, double toAngle, int direction){
+		LCD.clear();
 		LCD.drawString("Searching",0,0);
 		
 		nav.turnTo(fromAngle, 0);
@@ -197,7 +198,9 @@ public class DemoController extends Thread {
 			return;
 		}
 		
-		LCD.drawString("r:" + (int)newBlock[0] + ", t:" + (int)newBlock[1], 0, 5);
+		double currBlockDistance = newBlock[0];
+		
+		LCD.drawString("r:" + (int)newBlock[0] + ", t:" + (int)newBlock[1], 0, 1);
 		
 		Odometer.getPosition(pos);
 		
@@ -208,77 +211,49 @@ public class DemoController extends Thread {
 		}
 		nav.stop();
 		
-		function = FunctionType.APPROACH_BLOCK;
-	}
-	/*
-	// Search method (performs scans)
-	private void search(double fromAngle, double toAngle, int direction) {
-		if(fromAngle < 0)
-			fromAngle += 360;
-		toAngle = toAngle % 360;
-		LCD.drawString("search", 0, 4);
-		//0 as to turn to with smallest angle before starting the scan
-		nav.turnTo(fromAngle, 0);
-		while (!nav.isDone()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-		nav.turnTo(toAngle, direction);
+		//-------------Approach block -----------------------------------
 		
-		new Scan(nav, us);
-		LCD.drawString("search done", 0, 4);
-		
-		Map.cleanBlocks();
-		Map.buildNextBlockWaypoints();
-		if (Map.hasNewWaypoint()) function = FunctionType.BLOCK_NAVIGATE;
-		else function = FunctionType.POINT_NAVIGATE;
-	}*/
-	private void approachBlock(){
 		nav.move();
-		double dist = us.getRawDistance() / 2;
+		double dist = us.getFilteredData() / 2;
 		
-		int counter = 0;
+		long startTime = System.currentTimeMillis();
 		while(!us.flagObstruction()){
-			if(dist > 60 && counter >= 10){
+			long elapsedTime = System.currentTimeMillis() - startTime;
+			double distanceTravelled = Odometer.getSpeed() * elapsedTime / 1000;
+			LCD.drawString("b:" + (int)currBlockDistance + " d:" + (int)distanceTravelled, 0,2);
+			
+			if(dist > 60 && distanceTravelled > currBlockDistance){
 				nav.stop();
 				function = FunctionType.FIND_BLOCK;
 				return;
 			}
-			else if(dist > 60)
-				counter++;
 			try{Thread.sleep(30);} catch(InterruptedException e){ }
-			dist = us.getRawDistance() / 2;
+			dist = us.getFilteredData() / 2;
 		}
 		nav.stop();
 		
 		function = FunctionType.IDENTIFY;
 	}
+	
 	private void findNextBlock(){
-/*		nav.move();
-		try { Thread.sleep(500); } 
-		catch (InterruptedException e) { }
-		nav.stop();*/
-		
 		Odometer.getPosition(pos);
-		double turnAngle = pos[2] + 45;
+		double turnAngle = pos[2] + 50;
 		if(turnAngle > 360)
 			turnAngle -= 360;
+		
 		nav.turnTo(turnAngle, 0);
 		while (!nav.isDone()) {
 			try { Thread.sleep(400); } 
 			catch (InterruptedException e) { }
 		}
 		nav.stop();
-		Odometer.getPosition(pos);
-		turnAngle = pos[2] + 240;
-		if(turnAngle > 360)
-			turnAngle -= 360;
-		this.search(pos[2], turnAngle, 1);
+		
+		function = FunctionType.SEARCH;
 	}
 	// Handles navigating to a block (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToBlock() {
-		LCD.drawString("nav1 start", 0, 4);
+		LCD.drawString("block Nav", 0, 0);
 		double[] wp = new double[2];
 		Map.getWaypoint(wp);
 		
@@ -330,7 +305,7 @@ public class DemoController extends Thread {
 
 	// Handles the navigation to the end
 	private void navigateToEnd() {		
-		LCD.drawString("go home", 0, 4);
+		LCD.drawString("go home", 0, 0);
 		Map.buildEndWaypoints();
 		
 		double[] wp = new double[2];
@@ -350,7 +325,7 @@ public class DemoController extends Thread {
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToNextPoint() {
 		LCD.clear();
-		LCD.drawString("navigate2", 0, 0);
+		LCD.drawString("next Point", 0, 0);
 		
 		Odometer.getPosition(pos);
 		double[] endZone = Map.getEndCenter();
@@ -380,9 +355,12 @@ public class DemoController extends Thread {
 			
 			Map.getWaypoint(wp);
 			
-			//LCD.drawString((int)wp[0] + "|" + (int)wp[1],0,2);
+			LCD.drawString((int)wp[0] + "|" + (int)wp[1],0,2);
 			Odometer.getPosition(pos);
 			double newHeading = Math.toDegrees(Math.atan2(wp[1] - pos[1], wp[0] - pos[0]));
+			if(newHeading < 0)
+				newHeading += 360;
+			newHeading = newHeading % 360;
 			
 			nav.turnTo(newHeading, 0);
 			while (!nav.isDone()) {
@@ -407,7 +385,7 @@ public class DemoController extends Thread {
 	
 	// Identifies a specific block
 	private void identify() {
-		LCD.drawString("identify", 0, 4);
+		LCD.drawString("identify", 0, 0);
 		
 		// if the block is blue collect it
 		if (id.isBlue()) {
@@ -421,7 +399,7 @@ public class DemoController extends Thread {
 			Odometer.getPosition(pos);
 			Map.addBlock(us.getFilteredData() / 2, pos[2]);
 			
-			function = FunctionType.FIND_MORE;
+			function = FunctionType.SEARCH;
 /*			Map.blockChecked(false);
 			Map.buildNextBlockWaypoints();
 			
@@ -434,7 +412,7 @@ public class DemoController extends Thread {
 
 	// Collects navigated-to block
 	private void collect() {
-		LCD.drawString("collect", 0,4);
+		LCD.drawString("collect", 0,0);
 		collection.lowerCage();
 		collection.openCage();
 		

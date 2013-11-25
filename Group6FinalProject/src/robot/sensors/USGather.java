@@ -18,7 +18,7 @@ public class USGather implements TimerListener {
 	private int rawDistance;
 	private boolean filter;
 	
-	private final int FLAG_THRESH = 36;
+	private final int FLAG_THRESH = 37;
 	private final int SEN_TO_CENTER = 8;
 	private final static int FILTER_OUT = 5;
 	private final int SLEEP_TIME = 10;
@@ -49,12 +49,10 @@ public class USGather implements TimerListener {
 
 	//method to check for obstruction block when navigating to waypoint
 	public boolean flagObstruction() {
-		if(getRawDistance() < FLAG_THRESH) {
+		if(getRawDistance() < FLAG_THRESH) 
 			return true;
-		}
-		else {
+		else 
 			return false;
-		}
 	}
 	
 	//getFilteredData will return an int after filtering out 255 values

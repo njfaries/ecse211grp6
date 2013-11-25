@@ -37,7 +37,7 @@ public class Identify {
 		else {
 			nav.reverse();
 
-			try{ Thread.sleep(1500); }
+			try{ Thread.sleep(500); }
 			catch(InterruptedException e){ }
 			
 			nav.stop();

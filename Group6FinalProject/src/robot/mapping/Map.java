@@ -35,7 +35,6 @@ public class Map {
 
 	private static int[] endPoints;
 	private static int[] avoidPoints;
-	private Rectangle endZone = new Rectangle();
 	private Rectangle avoidZone = new Rectangle();
 	
 	private static Object lock = new Object();
@@ -46,9 +45,6 @@ public class Map {
 	public Map(PlayerRole role, int[] redZone, int[] greenZone){
 		endPoints = greenZone;
 		avoidPoints = redZone;
-		
-		endZone.setSize(endPoints[2] - endPoints[0] ,endPoints[3] - endPoints[1]);
-		endZone.setLocation(endPoints[0], endPoints[1]);
 		
 		avoidZone.setSize(avoidPoints[2] - avoidPoints[0] ,avoidPoints[3] - avoidPoints[1]);
 		avoidZone.setLocation(avoidPoints[0], avoidPoints[1]);
@@ -102,6 +98,9 @@ public class Map {
 	private static void findPathToWaypoint(double wpX, double wpY){
 		waypointXs.add(0, wpX);
 		waypointYs.add(0, wpY);
+		
+		if(blocks.size() < 1)
+			return;
 		
 		double[] pos = new double[3];
 		Odometer.getPosition(pos);
@@ -201,6 +200,7 @@ public class Map {
 		//waypointXs.add(endPoint[0]);
 		//waypointYs.add(endPoint[1]);
 		//run below insead of the two lines above once the below lines are properly debugged
+		
 		findPathToWaypoint(endPoint[0] , endPoint[1]);
 		
 		synchronized(lock){
@@ -275,7 +275,7 @@ public class Map {
 	}
 
 	public static double[] getEndCenter(){
-		return new double[]{endPoints[2] - endPoints[0], endPoints[3] - endPoints[1]};
+		return new double[]{(endPoints[2] + endPoints[0])/  2, (endPoints[3] + endPoints[1]) / 2};
 	}
 	public static int getBlockCount(){
 		return blocks.size();

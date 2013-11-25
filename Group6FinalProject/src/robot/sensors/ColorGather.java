@@ -87,10 +87,10 @@ public class ColorGather implements TimerListener {
 		}
 		
 		
-		if(Odometer.getLeftWheelSpeed() == Odometer.getRightWheelSpeed())
+/*		if(Odometer.getLeftWheelSpeed() == Odometer.getRightWheelSpeed())
 			doCorrection();
 		else
-			stopCorrection();
+			stopCorrection();*/
 		
 		if(!doCorrection)
 			return;

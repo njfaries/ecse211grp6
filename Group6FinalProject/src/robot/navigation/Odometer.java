@@ -131,4 +131,9 @@ public class Odometer implements TimerListener {
 	public static double getRightWheelSpeed(){
 		return robo.getRightWheelSpeed();
 	}
+	public static double getSpeed(){
+		double degSpeed = (robo.getLeftWheelSpeed() + robo.getRightWheelSpeed()) / 2;
+		double speed = degSpeed * (2 * Math.PI * TwoWheeledRobot.DEFAULT_LEFT_RADIUS) / 360;
+		return speed;
+	}
 }
