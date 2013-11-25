@@ -8,7 +8,7 @@ import lejos.nxt.LCD;
 import robot.navigation.Odometer;
 
 public class Block {
-	public static final double blockRadius = 16, waypointDistance = 35;
+	public static final double blockRadius = 20, waypointDistance = 35;
 	private ArrayList<Double> xPoints = new ArrayList<Double>();
 	private ArrayList<Double> yPoints = new ArrayList<Double>();
 	

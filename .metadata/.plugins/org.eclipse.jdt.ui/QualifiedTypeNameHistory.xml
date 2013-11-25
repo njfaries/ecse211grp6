@@ -3,8 +3,11 @@
 <fullyQualifiedTypeName name="robot.bluetooth.StartCorner"/>
 <fullyQualifiedTypeName name="robot.bluetooth.PlayerRole"/>
 <fullyQualifiedTypeName name="robot.mapping.Map"/>
-<fullyQualifiedTypeName name="robot.navigation.Odometer"/>
 <fullyQualifiedTypeName name="robot.sensors.ColorGather"/>
 <fullyQualifiedTypeName name="robot.navigation.OdometryCorrection"/>
 <fullyQualifiedTypeName name="lejos.nxt.LCD"/>
+<fullyQualifiedTypeName name="robot.navigation.TwoWheeledRobot"/>
+<fullyQualifiedTypeName name="robot.navigation.Odometer"/>
+<fullyQualifiedTypeName name="robot.navigation.Navigation2"/>
+<fullyQualifiedTypeName name="robot.mapping.Scan2"/>
 </qualifiedTypeNameHistroy>

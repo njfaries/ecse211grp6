@@ -3,6 +3,7 @@ package robot.sensors;
 import robot.navigation.Odometer;
 import lejos.util.Timer;
 import lejos.util.TimerListener;
+import lejos.nxt.LCD;
 import lejos.nxt.UltrasonicSensor;
 
 /**
@@ -19,6 +20,7 @@ public class USGather implements TimerListener {
 	private boolean filter;
 	
 	private final int FLAG_THRESH = 37;
+	private final int CRITICAL_FLAG_THRESH = 20;
 	private final int SEN_TO_CENTER = 8;
 	private final static int FILTER_OUT = 5;
 	private final int SLEEP_TIME = 10;
@@ -54,6 +56,13 @@ public class USGather implements TimerListener {
 		else 
 			return false;
 	}
+	public boolean criticalFlag() {
+		if(getRawDistance() < CRITICAL_FLAG_THRESH) 
+			return true;
+		else 
+			return false;
+	}
+	
 	
 	//getFilteredData will return an int after filtering out 255 values
 	public int getFilteredData() {
@@ -94,6 +103,7 @@ public class USGather implements TimerListener {
 		double readY = y + reading*Math.sin(Math.toRadians(theta));
 		//checking if coordinate is a wall value
 		if(readY < WALL_ERROR || readY > 240 - WALL_ERROR || readX < WALL_ERROR || readX > 240 - WALL_ERROR) { 
+			LCD.drawString("WALL         ",0,1);
 			reading = -1; 
 		}
 		//checking if coordinate is a block found ???
