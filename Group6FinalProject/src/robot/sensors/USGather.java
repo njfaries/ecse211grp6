@@ -115,5 +115,10 @@ public class USGather implements TimerListener {
 		}
 		return result;
 	}
+	public boolean flagObstruction() {
+		if (r < 40)
+			return true;
+		return false;
+	}
 	
 }
