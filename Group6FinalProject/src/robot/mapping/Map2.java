@@ -29,10 +29,10 @@ public class Map2 {
 	
 	// Contains the bounds of the object and whether or not it has been investigated
 	// private static Hashtable<Ellipse2D.Double, Boolean> objects = new Hashtable<Ellipse2D.Double, Boolean>();
-
+	private static double[] pos  = new double[3];
 	private static int[] endPoints;
 	private static int[] avoidPoints;
-	private Rectangle avoidZone = new Rectangle();
+	private static Rectangle avoidZone = new Rectangle();
 	
 	private static Object lock = new Object();
 	/**
@@ -40,8 +40,15 @@ public class Map2 {
 	 * @param mode
 	 */
 	public Map2(PlayerRole role, int[] redZone, int[] greenZone){
-		endPoints = greenZone;
-		avoidPoints = redZone;
+		if(role == PlayerRole.BUILDER){
+			endPoints = greenZone;
+			avoidPoints = redZone;
+		}
+		else{
+			endPoints = redZone;
+			avoidPoints = greenZone;
+		}
+
 		
 		avoidZone.setSize(avoidPoints[2] - avoidPoints[0] ,avoidPoints[3] - avoidPoints[1]);
 		avoidZone.setLocation(avoidPoints[0], avoidPoints[1]);
@@ -55,7 +62,7 @@ public class Map2 {
 	 */
 	public static void addPoint(double x, double y){
 		Point2D point = new Point2D.Double(x, y);
-		points.add(point);
+		points.add(0, point);
 	}
 	
 	// Getters
@@ -66,6 +73,11 @@ public class Map2 {
 		return false;
 	}
 	
+	public static boolean checkWaypoint(double x, double y){
+		Odometer.getPosition(pos);
+		Line2D path = new Line2D.Double(pos[0], pos[1], x, y);
+		return path.intersects(avoidZone);
+	}
 	/**
 	 * Updates the waypoint array with the coordinates of the current waypoint to be traveled to.
 	 * If the waypoint are new, set newWaypoints to false.

@@ -1,0 +1,316 @@
+import lejos.nxt.MotorPort;
+import lejos.nxt.NXTRegulatedMotor;
+import lejos.util.Timer;
+import lejos.util.TimerListener;
+import lejos.nxt.LCD;
+
+public class Movement implements TimerListener {
+	
+	//initializing needed variables
+	private final double WHEEL_RADIUS = 2.125;
+	private final double WHEEL_BASE = 21.0;
+	private final double TURN_ERROR_THRESH = 3.0;
+	private final double UPDATE_TF_RADIUS = 6.0;
+	private final double DEST_RADIUS = 3.0;
+	private final int FORWARD_SPEED = 200;
+	private final int ROTATE_SPEED = 200;
+	private static final int PERIOD = 25; //odometer update period, in ms
+	
+	private double x, y, xf, yf, theta, thetaf;
+	private int tachoL, tachoR, changeInTachoL, changeInTachoR; //initializing needed tacho values
+	private int lastTachoL = 0;
+	private int lastTachoR = 0;
+	private double changeInDisplacement = 0.0; 	//initializing displacement value
+	private double changeInTheta = 90.0 * (Math.PI / 180);
+	private Object lock; //lock object for mutual exclusion
+    private NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
+    private NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
+    private NXTRegulatedMotor cageMotor = new NXTRegulatedMotor(MotorPort.C);
+	private enum MotorState { STOP, FORWARD, LEFT, RIGHT }; //defining a current motor movement type
+	private MotorState motorsAre = MotorState.STOP;
+
+	//constructor and thread start
+	public Movement() {
+		
+		x = 30.0;
+		y = 30.0;
+		theta = 90;
+		
+		xf = 30.0;
+		yf = 30.0;
+		thetaf = 90;
+		
+		lock = new Object();
+		Timer timer = new Timer(PERIOD, this);
+		timer.start();
+	}
+	public void timedOut() {
+		updateTacho();
+		synchronized (lock) {
+			//don't use the variables x, y, theta, xf, yf or thetaf anywhere but here!
+			//chaning theta back to radians for calculation
+			theta = Math.toRadians(theta);
+			//calculate the change in theta
+			calculateChangeInTheta();
+			//finding new x and y coordinates
+			calculateChangeInDisplacement();
+			x = x + changeInDisplacement * Math.cos(theta + changeInTheta/2);
+			y = y + changeInDisplacement * Math.sin(theta + changeInTheta/2);
+			//calculating the new theta
+			theta = theta - changeInTheta;
+			//changing to degrees for display
+			theta = Math.toDegrees(theta);
+			//if our final and initial position are not the same update thetaf
+			if(!travelComplete() && Math.abs(xf - x) < UPDATE_TF_RADIUS && Math.abs(yf - y) < UPDATE_TF_RADIUS) {
+				thetaf = requiredHeading(x, y, xf, yf);
+			}
+			
+		}
+		//LCD.clear(2);
+		LCD.drawString(( "x: " + (int)getX() ), 0, 0);
+		LCD.drawString(( "y: " + (int)getY() ), 0, 1);
+		LCD.drawString(( "t: " + (int)getTheta() ), 0, 2);
+		LCD.drawString(( "xf: " + (int)getXF() ), 8, 0);
+		LCD.drawString(( "yf: " + (int)getYF() ), 8, 1);
+		LCD.drawString(( "tf: " + (int)getThetaF() ), 8, 2);
+		move();
+		//LCD.drawString(( "motors: " + motorsAre ), 0, 3);
+	}
+	
+	//update desired position and check progress from other threads
+	public void travel(double xf, double yf) {
+		setXF(xf);
+		setYF(yf);
+		setThetaF( requiredHeading(getX(), getY(), xf, yf) );
+	}
+	public void turn(double t) {
+		setThetaF(t);
+	}
+	public boolean travelComplete() {
+		if( Math.abs(getX() - getXF()) < DEST_RADIUS &&  Math.abs(getY() - getYF()) < DEST_RADIUS ) 
+			return true;
+		return false;
+	}
+	public boolean turnComplete() {
+		if( Math.abs(getTheta() - getThetaF()) < TURN_ERROR_THRESH ) 
+			return true;
+		return false;
+	}
+	public boolean movementComplete() {
+		if( travelComplete() && turnComplete() ) {
+			return true;
+		}
+		else {
+			return false;
+		}
+	}
+	public void stopMovement() {
+		setX(getX());
+		setY(getY());
+		setTheta(getThetaF());
+	}
+	
+	//actual robot movement
+	private void move() {
+		boolean travelComplete = travelComplete();
+		boolean turnComplete = turnComplete();
+		
+		if( travelComplete && turnComplete ) {
+			setMotorState(MotorState.STOP);
+			return;
+		}
+		
+		//if the robot is also travelling to a destination the turn is completed first
+		else if( !turnComplete ) {
+			//turn left if final > initial
+			if( getThetaF() > getTheta() ) { setMotorState(MotorState.LEFT); }
+			//else turn right
+			else { setMotorState(MotorState.RIGHT); }
+		}
+		
+		//this statement is only executed if the current heading is accurate
+		else if( !travelComplete ) {
+			setMotorState(MotorState.FORWARD);
+		}
+		
+	}
+	public double requiredHeading(double x, double y, double xf, double yf) {
+		//helper method that returns the calculated required theta in degrees
+		
+		//finding change in x and y coords
+		double deltaX = xf - x;
+		double deltaY = yf - y;
+		
+		//return the change in theta
+		return Math.toDegrees(Math.atan2(deltaY,deltaX));
+	}	
+	private void setMotorState(MotorState motorsShouldBe) {
+		//if the desired motor state matches the current one do nothing
+		if( motorsShouldBe == motorsAre ) {
+			return;
+		}
+		//otherwise change the motors to correct movement
+		else if( motorsShouldBe == MotorState.FORWARD ) {
+			leftMotor.forward();
+			rightMotor.forward();
+			leftMotor.setSpeed(FORWARD_SPEED);
+			rightMotor.setSpeed(FORWARD_SPEED);
+			motorsAre = MotorState.FORWARD;
+		}
+		else if( motorsShouldBe == MotorState.STOP ) {
+			leftMotor.stop();
+			rightMotor.stop();
+			motorsAre = MotorState.STOP;
+		}
+		else if( motorsShouldBe == MotorState.LEFT ) {
+			leftMotor.backward();
+			rightMotor.forward();
+			leftMotor.setSpeed(ROTATE_SPEED);
+			rightMotor.setSpeed(ROTATE_SPEED);
+			motorsAre = MotorState.LEFT;
+		}
+		else if( motorsShouldBe == MotorState.RIGHT ) {
+			leftMotor.forward();
+			rightMotor.backward();
+			leftMotor.setSpeed(ROTATE_SPEED);
+			rightMotor.setSpeed(ROTATE_SPEED);
+			motorsAre = MotorState.RIGHT;
+		}			
+	}
+	public void rotateCage(int degrees){
+		cageMotor.rotate(degrees);
+	}
+	
+	//helper methods to update odometer position
+	public void calculateChangeInTheta() {
+		changeInTheta = (changeInTachoL*WHEEL_RADIUS - changeInTachoR*WHEEL_RADIUS)/WHEEL_BASE;
+		changeInTheta = changeInTheta * (Math.PI / 180);
+	} //using formula to find change in theta
+	public void calculateChangeInDisplacement() {
+		changeInDisplacement = (changeInTachoL*WHEEL_RADIUS + changeInTachoR*WHEEL_RADIUS)/2;
+		changeInDisplacement = changeInDisplacement * (Math.PI / 180);
+	} //using formula to find change in displacement
+	public void updateTacho() {
+		
+		//reading new tacho values
+		tachoL = leftMotor.getTachoCount();
+		tachoR = rightMotor.getTachoCount();
+		
+		//finding difference between old and new tacho readings
+		changeInTachoL = tachoL - lastTachoL;
+		changeInTachoR = tachoR - lastTachoR;
+		
+		//reseting lastTacho values for next iteration
+		lastTachoL = tachoL;
+		lastTachoR = tachoR;
+		
+	} //update the Tacho value and find changeInTacho
+
+	//accessors
+	public void getPosition(double[] position) {
+		// ensure that the values don't change while the odometer is running
+		synchronized (lock) {
+			position[0] = x;
+			position[1] = y;
+			position[2] = theta;
+		}
+	}
+	public double getX() {
+		double result;
+
+		synchronized (lock) {
+			result = x;
+		}
+
+		return result;
+	}
+	public double getY() {
+		double result;
+
+		synchronized (lock) {
+			result = y;
+		}
+
+		return result;
+	}
+	public double getTheta() {
+		double result;
+
+		synchronized (lock) {
+			result = theta;
+		}
+
+		return result;
+	}
+	public double getXF() {
+		double result;
+
+		synchronized (lock) {
+			result = xf;
+		}
+
+		return result;
+	}
+	public double getYF() {
+		double result;
+
+		synchronized (lock) {
+			result = yf;
+		}
+
+		return result;
+	}
+	public double getThetaF() {
+		double result;
+
+		synchronized (lock) {
+			result = thetaf;
+		}
+
+		return result;
+	}
+	
+	//mutators
+	public void setPosition(double[] position, boolean[] update) {
+		// ensure that the values don't change while the odometer is running
+		synchronized (lock) {
+			if (update[0])
+				x = position[0];
+			if (update[1])
+				y = position[1];
+			if (update[2])
+				theta = position[2];
+		}
+	}
+	public void setX(double x) {
+		synchronized (lock) {
+			this.x = x;
+		}
+	}
+	public void setY(double y) {
+		synchronized (lock) {
+			this.y = y;
+		}
+	}
+	public void setTheta(double theta) {
+		synchronized (lock) {
+			this.theta = theta;
+		}
+	}
+	private void setXF(double xf) {
+		synchronized (lock) {
+			this.xf = xf;
+		}
+	}
+	private void setYF(double yf) {
+		synchronized (lock) {
+			this.yf = yf;
+		}
+	}
+	private void setThetaF(double thetaf) {
+		synchronized (lock) {
+			this.thetaf = thetaf;
+		}
+	}
+	
+}

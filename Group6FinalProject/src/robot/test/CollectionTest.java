@@ -25,10 +25,11 @@ public class CollectionTest extends Thread{
 	private NXTRegulatedMotor clawMotor = Motor.C;
 	
 	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
+	private static UltrasonicSensor usTop = new UltrasonicSensor(SensorPort.S3);
 	
 	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
 	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
+	
 	
 	private TwoWheeledRobot robo;
 	private USGather us;
@@ -47,8 +48,8 @@ public class CollectionTest extends Thread{
 		
 	}
 	public CollectionTest(){		
-		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, odoCorr);
+		us = new USGather(usFront, usTop);
+		cg = new ColorGather(csLeft, csRight, odoCorr);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo);

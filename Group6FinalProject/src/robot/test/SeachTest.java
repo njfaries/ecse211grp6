@@ -30,7 +30,7 @@ import lejos.nxt.UltrasonicSensor;
  * @version 1.0
  * @since 2013-11-04
  */
-public class SearchTest extends Thread {
+public class SeachTest extends Thread {
 	public enum FunctionType {
 		IDLE, RECEIVE, LOCALIZE, SEARCH, POINT_NAVIGATE, IDENTIFY, COLLECT, END_NAVIGATE, RELEASE
 	};
@@ -76,14 +76,14 @@ public class SearchTest extends Thread {
 	int[] redZone = new int[4];
 	
 	public static void main(String[] args) {
-		new SearchTest();
+		new SeachTest();
 	}
 
 	/**
 	 * The robot controller delegates the starting and ending of various
 	 * subtasks like localization, searching and collection.
 	 */
-	public SearchTest() {
+	public SeachTest() {
 		startTime = System.currentTimeMillis();
 		
 		//receive();

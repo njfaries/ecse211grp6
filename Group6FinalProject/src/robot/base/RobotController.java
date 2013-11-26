@@ -208,7 +208,60 @@ public class RobotController extends Thread {
 		cageMotor.rotate(-330);
 		loc.localize();
 	}
-
+	
+	private void navigateBoard(int mode){
+		// Back up a bit
+		nav.reverse();
+		try { Thread.sleep(500); } 
+		catch (InterruptedException e) {}
+		nav.stop();
+		
+		// Turn either by +-90degrees or to face the green (or red) zone
+		Odometer.getPosition(pos);
+		double turnAngle = 0;
+		if(mode == 1){
+			double[] endCenter = Map2.getEndCenter();
+			turnAngle = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0])) - pos[2];
+		}
+		else{
+			if(pos[2] > 45 && pos[2] < 180)
+				turnAngle = -90;
+			else
+				turnAngle = 90;
+		}
+		// Fix angle if needed
+		if(turnAngle < 0)
+			turnAngle += 360;
+		turnAngle = turnAngle % 360;
+		
+		// Turn
+		nav.turnTo(pos[2] + turnAngle, 0);
+		while(!nav.isDone()){
+			try { Thread.sleep(250); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		// Go forward until an obstacle is found
+		nav.move();
+		while(!us.flagObstruction()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		// While an obstruction is flagged and no block is seen, continue forward (may return instantly)
+		while(us.getZType() == USGather.HeightCategory.FLOOR && us.flagObstruction()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		// If there is a blue block, collect it
+		if(us.getZType() == USGather.HeightCategory.BLUE_BLOCK)
+			collect();
+		else // Otherwise call this again
+			navigateBoard(mode * -1);
+		
+	}
 	// Identifies a specific block
 	private void identify() {
 
@@ -255,7 +308,8 @@ public class RobotController extends Thread {
 		
 		blocksCollected++;
 		
-		function = FunctionType.OPEN_NAVIGATE;
+		navigateBoard(1);
+		//function = FunctionType.OPEN_NAVIGATE;
 	}
 
 	// Releases the entire stack (only done at the end of the match)

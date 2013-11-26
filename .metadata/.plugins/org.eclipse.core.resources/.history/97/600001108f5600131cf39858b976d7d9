@@ -1,0 +1,188 @@
+import lejos.nxt.ColorSensor;
+import lejos.nxt.LCD;
+import lejos.nxt.SensorPort;
+import lejos.nxt.UltrasonicSensor;
+import lejos.nxt.Button;
+import lejos.util.Timer;
+import lejos.util.TimerListener;
+import robot.bluetooth.StartCorner;
+
+public class FlowController extends Thread {
+	
+	private Movement move;
+	private UltrasonicSensor usTop;
+	private UltrasonicSensor usBottom;
+	private USGather us;
+	private Scanner sc;
+	private ColorSensor csLeft;
+	private ColorSensor csRight;
+	
+	private final double HALF_BOARD_SIZE = 160.0;
+	private final double HALF_SCAN_RANGE = 90.0;
+	private final double OPEN_DIST = 40.0;
+	
+	private enum ExecutionType { LOCALIZE, SCAN, MOVE_TO_BLOCK, IDENTIFY, MOVE_TO_OPEN, COLLECT, RELEASE, IDLE };
+	private ExecutionType execution;
+	
+	private Object lock; //lock object for mutual exclusion
+	private int[] greenZoneCenter = new int[] {90,90}; //both zones to be updated via blue tooth!
+	private int[] redZoneCorners = new int[] {300,300,330,330};
+	private int blocksCollected = 0;
+	private boolean enoughBlocksCollected = false; //starts at true for testing!!
+	private double scanTi = 0;
+	private double scanTf = 0;
+	private boolean continueProgram = true;
+	
+	public static void main( String[] args ) {
+		//wait for press to execute
+		Button.waitForAnyPress();
+		//execute
+		new FlowController();
+		//wait for press to finish
+		Button.waitForAnyPress();	
+	}
+	
+	public FlowController() {
+		
+		move = new Movement();
+		move.rotateCage(-435);
+		usBottom = new UltrasonicSensor(SensorPort.S4);
+		usTop = new UltrasonicSensor(SensorPort.S3);
+		us = new USGather(usBottom, usTop, move);
+		sc = new Scanner(move, us);
+		csLeft = new ColorSensor(SensorPort.S1);
+		csRight = new ColorSensor(SensorPort.S2);
+		//tmp BOTTOM_LEFT!
+		//loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, move);
+		lock = new Object();
+		
+		//things for testing!!!!
+		enoughBlocksCollected = true;
+		execution =  ExecutionType.SCAN;
+		//loc.localize();
+		
+		this.run();
+	}
+	
+	public void run() {
+		while(continueProgram) {
+			switch(execution) {
+			case IDLE:
+				execution = ExecutionType.IDLE;
+				try { Thread.sleep(500); }
+				catch(InterruptedException e){ }
+				continue;
+			case LOCALIZE:
+			case SCAN:
+				defineScanRange();
+				sc.scanRange(scanTi, scanTf);
+				execution = ExecutionType.MOVE_TO_OPEN;
+			case MOVE_TO_BLOCK: 
+			case IDENTIFY:
+			case MOVE_TO_OPEN:
+				double t = sc.bestOpenAngle(scanTi, scanTf, greenZoneCenter[0], greenZoneCenter[1]);
+				//if -1 is return of best open angle, none open, scan again
+				if(t == -1) { 
+					execution = ExecutionType.SCAN;
+					break;
+				}
+				double x = move.getX() + OPEN_DIST * Math.cos(Math.toRadians(t));
+				double y = move.getY() + OPEN_DIST * Math.sin(Math.toRadians(t));
+				//if green zone center is within a threshold go to it as it is assumed as open
+				if(enoughBlocksCollected && Math.abs(move.getX() - greenZoneCenter[0]) < 15 
+						&& Math.abs(move.getY() - greenZoneCenter[1]) < 15 ) {
+					execution = ExecutionType.RELEASE;
+					break;
+				}
+				else move.travel(x, y);
+				while( !move.movementComplete() ) {
+					try { Thread.sleep(50); }
+					catch(InterruptedException e){ }
+					continue;
+				}
+				execution = ExecutionType.SCAN;
+			case COLLECT:
+			case RELEASE:
+				move.travel(greenZoneCenter[0], greenZoneCenter[1]);
+				while( !move.movementComplete() ) {
+					try { Thread.sleep(50); }
+					catch(InterruptedException e){ }
+					continue;
+				}
+				try { Thread.sleep(500); }
+				catch(InterruptedException e){ }
+			}
+		}
+		try { Thread.sleep(500); }
+		catch(InterruptedException e){ }
+	}
+	
+	//edge triggered methods to define the next execution and update private variables
+	//method updates zones and starting positions
+	private void bluetoothReceive() {
+		
+	}
+	private boolean blockFound() {
+		return true;
+	}
+	//confirms if a tested block is blue
+	private boolean blueIdentified() {
+		return true;
+	}
+	private boolean needMoreBlueBlocks() {
+		return true;
+	}
+	private boolean endZoneInView() {  
+		return true;
+	}
+	//defines the scanning range based on the position desired
+	private void defineScanRange() {
+		double x = move.getX();
+		double y = move.getY();
+		//if enough blocks collected scan range points to greenZoneCenter
+		if(enoughBlocksCollected) {
+			double tCenter = move.requiredHeading(x, y, greenZoneCenter[0], greenZoneCenter[1]);
+			scanTi = tCenter - HALF_SCAN_RANGE;
+			scanTf = tCenter + HALF_SCAN_RANGE;
+		}
+		//deal with cases where more blocks need to be collected
+		else {
+			double tCenter = move.getTheta();
+			scanTi = tCenter - HALF_SCAN_RANGE;
+			scanTf = tCenter + HALF_SCAN_RANGE;
+		}
+	}
+	private void updatePositionDesired() {
+		
+	}
+
+	
+}
+
+
+/*
+
+
+int[] loc = new int[] {60,60};
+for( int i = 0; i < loc.length; i = i+2 ) {
+	move.travel(loc[i], loc[i+1]);
+	while( !move.movementComplete() ) {
+		try { Thread.sleep(200); }
+		catch(InterruptedException e){ }
+	}
+}
+
+
+double t = move.getTheta();
+sc.scanRange(t, t+90);
+
+int[] ca = sc.getCA();
+for(int i = 0; i < ca.length; i++) {
+		LCD.drawInt(ca[i], i, 4);
+}
+
+
+
+Button.waitForAnyPress();
+
+*/

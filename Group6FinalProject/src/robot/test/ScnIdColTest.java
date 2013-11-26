@@ -1,12 +1,9 @@
 package robot.test;
 
-import java.util.ArrayList;
-
-import robot.base.DemoController.FunctionType;
+import robot.base.RobotController.FunctionType;
 import robot.base.RobotController.RobotMode;
 import robot.bluetooth.PlayerRole;
 import robot.collection.*;
-import robot.mapping.Block;
 import robot.mapping.Map;
 import robot.mapping.Scan;
 import robot.navigation.*;

@@ -58,7 +58,7 @@ public class USGather implements TimerListener {
 		//if 255 return without update
 		if( usXY.getDistance() != 255 ) {
 			Odometer.getPosition(pos);
-			r = usXY.getDistance() + SEN_TO_CENTER;
+			r = usXY.getDistance() + 2 * SEN_TO_CENTER;
 
 			x = pos[0] + r * Math.cos(Math.toRadians(pos[2]));
 			y = pos[1] + r * Math.sin(Math.toRadians(pos[2]));
