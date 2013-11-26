@@ -1,4 +1,5 @@
 package robot.test;
+
 import robot.bluetooth.BluetoothConnection;
 import robot.bluetooth.PlayerRole;
 import robot.bluetooth.StartCorner;
@@ -7,6 +8,7 @@ import robot.collection.*;
 import robot.localization.Localization;
 import robot.mapping.Map;
 import robot.mapping.Scan;
+import robot.mapping.Scan2;
 import robot.navigation.*;
 import robot.sensors.*;
 import robot.test.IdenCollTest.FunctionType;
@@ -30,7 +32,7 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class SearchTest extends Thread {
 	public enum FunctionType {
-		IDLE, RECEIVE, LOCALIZE, INITIAL_SEARCH, SEARCH, BLOCK_NAVIGATE, POINT_NAVIGATE, IDENTIFY, COLLECT, END_NAVIGATE, RELEASE
+		IDLE, RECEIVE, LOCALIZE, SEARCH, POINT_NAVIGATE, IDENTIFY, COLLECT, END_NAVIGATE, RELEASE
 	};
 
 	private static long gameTime = 300000;
@@ -52,24 +54,25 @@ public class SearchTest extends Thread {
 	
 	private Navigation2 nav;
 	private TwoWheeledRobot robo;
-	private OdometryCorrection corrector;
 	
 	private CollectionSystem collection;
 	private Identify id;
+	private Scan2 scan;
 	
-	private FunctionType function = FunctionType.INITIAL_SEARCH;
+	private FunctionType function = FunctionType.SEARCH;
 	
 	private int blocksCollected = 0;
 	private int maxBlocks = 2;
 	private long startTime = 0;
 	private long elapsedTime = 0;
-	private final int INTIAL_CAGE_ROTATION = -330;
-
+	private final int INTIAL_CAGE_ROTATION = -435; 
+	private double searchFrom = 0, searchTo = 90;
+	
 	private double[] pos = new double[3];
 	
 	StartCorner corner = StartCorner.BOTTOM_LEFT;
 	PlayerRole role = PlayerRole.BUILDER;
-	int[] greenZone = new int[4];
+	int[] greenZone = new int[] {60,90,90,120};
 	int[] redZone = new int[4];
 	
 	public static void main(String[] args) {
@@ -89,17 +92,17 @@ public class SearchTest extends Thread {
 		//new LCDInfo();
 
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
 		
+		scan = new Scan2(nav, us);
 		//need to construct localization with transmission.startingCorner
 		corner = StartCorner.BOTTOM_LEFT;
 		loc = new Localization(us, cg, corner, nav);
 		
-		corrector = new OdometryCorrection(cg);
-		new Odometer(robo , null);
+		new Odometer(robo);
 
 		id = new Identify(cg, us, nav);
 
@@ -114,20 +117,14 @@ public class SearchTest extends Thread {
 		
 		while (true) {
 			elapsedTime = System.currentTimeMillis() - startTime;
-			if(elapsedTime > gameTime - 30000 && function != FunctionType.END_NAVIGATE)
+			if(elapsedTime > gameTime - 60000 && function != FunctionType.END_NAVIGATE)
 				 function = FunctionType.END_NAVIGATE;
 				
-			LCD.clear();
+			//LCD.clear();
 			if (function == FunctionType.LOCALIZE)
 				localize();
-			else if (function == FunctionType.INITIAL_SEARCH)
-				search(0, 90, 1);
-			else if (function == FunctionType.SEARCH){
-				Odometer.getPosition(pos);
-				search(pos[2], pos[2] + 359, 1);
-			}
-			else if (function == FunctionType.BLOCK_NAVIGATE)
-				navigateToBlock();
+			else if (function == FunctionType.SEARCH)
+				search(searchFrom, searchTo, 1);
 			else if (function == FunctionType.POINT_NAVIGATE)
 				navigateToNextPoint();
 			else if (function == FunctionType.END_NAVIGATE)
@@ -167,44 +164,90 @@ public class SearchTest extends Thread {
 	private void localize() {
 		LCD.drawString("Localize", 0, 4);
 		loc.localize();
-		function = FunctionType.INITIAL_SEARCH; // Once finished localizing robot goes
+		function = FunctionType.SEARCH; // Once finished localizing robot goes
 										// immediately to search mode.
 	}
 
 	// Search method (performs scans)
-	private void search(double fromAngle, double toAngle, int direction) {
-		LCD.drawString("search", 0, 4);
-		//0 as to turn to with smallest angle before starting the scan
+	private void search(double fromAngle, double toAngle, int direction){
+		LCD.clear();
+		LCD.drawString("Searching",0,0);
+		
 		nav.turnTo(fromAngle, 0);
+		while(!nav.isDone()){
+			try{Thread.sleep(400);} catch(InterruptedException e){ }
+			
+		}
+		nav.stop();
+		
+		double[] newBlock = scan.findBlock(toAngle, direction);
+		
+		if(newBlock == null){
+			function = FunctionType.POINT_NAVIGATE;
+			return;
+		}
+		
+		double currBlockDistance = newBlock[0];
+		
+		LCD.drawString("r:" + (int)newBlock[0] + ", t:" + (int)newBlock[1], 0, 1);
+		
+		Odometer.getPosition(pos);
+		
+		nav.turnTo(newBlock[1], 0);
+		while(!nav.isDone()){
+			try{Thread.sleep(400);} catch(InterruptedException e){ }
+			
+		}
+		nav.stop();
+		
+		//-------------Approach block -----------------------------------
+		
+		nav.move();
+		long startTime = System.currentTimeMillis();
+		while(!us.flagObstruction()){
+			long elapsedTime = System.currentTimeMillis() - startTime;
+			double distanceTravelled = Odometer.getSpeed() * elapsedTime / 1000;
+			LCD.drawString("b:" + (int)currBlockDistance + " d:" + (int)distanceTravelled, 0,2);
+			
+			if(distanceTravelled > currBlockDistance + 5){
+				nav.stop();
+				Odometer.getPosition(pos);
+				searchFrom = pos[2] - 45;
+				searchTo = pos[2] + 45;
+				function = FunctionType.SEARCH;
+				return;
+			}
+			try{Thread.sleep(30);} catch(InterruptedException e){ }
+		}
+		nav.stop();
+		
+		function = FunctionType.IDENTIFY;
+	}
+	
+	// CURRENTLY UNUSED
+	private void findNextBlock(){
+		Odometer.getPosition(pos);
+		
+		double turnAngle = pos[2] + 50;
+		if(turnAngle > 360)
+			turnAngle -= 360;
+		
+		nav.turnTo(turnAngle, 0);
 		while (!nav.isDone()) {
 			try { Thread.sleep(400); } 
 			catch (InterruptedException e) { }
 		}
-		nav.turnTo(toAngle, direction);
-
-		new Scan(nav, us);
+		nav.stop();
 		
-		while (!Scan.scanParsed()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-		LCD.drawString("search done", 0, 4);
-		
-		Map.cleanBlocks();
-		Map.buildNextBlockWaypoints();
-		
-		if (Map.hasNewWaypoint()) {
-			function = FunctionType.BLOCK_NAVIGATE;
-		}
-		else{
-			function = FunctionType.POINT_NAVIGATE;
-		}
+		searchFrom = pos[2];
+		searchTo = pos[2] + 180;
+		function = FunctionType.SEARCH;
 	}
-
 	// Handles navigating to a block (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
+	// CURRENTLY UNUSED
 	private void navigateToBlock() {
-		LCD.drawString("nav1 start", 0, 4);
+		LCD.drawString("block Nav", 0, 0);
 		double[] wp = new double[2];
 		Map.getWaypoint(wp);
 		
@@ -218,21 +261,26 @@ public class SearchTest extends Thread {
 		}
 		
 		nav.stop();
-		
-		LCD.clear();
-		LCD.drawString("nav1.0 end", 0, 4);
-		
-		nav.move();
+		//nav.move();
 		nav.travelTo(wp[0], wp[1]);
 		while (!us.flagObstruction()) {
 			//if the navigation is done no block has been found
 			if(nav.isDone()) {
-				//move back and search again
+				//move back and define function
 				nav.reverse();
-				try{ Thread.sleep(1000); }
+				try{ Thread.sleep(2000); }
 				catch(InterruptedException e){ }
 				nav.stop();
-				function = FunctionType.SEARCH;
+				
+				nav.rotate(1, 0);
+				while(!us.flagObstruction()){
+					try{ Thread.sleep(100); }
+					catch(InterruptedException e){ }
+				}
+				try{ Thread.sleep(500); }
+				catch(InterruptedException e){ }
+				nav.stop();
+				
 				return;
 			}
 			try { Thread.sleep(20); } 
@@ -241,37 +289,51 @@ public class SearchTest extends Thread {
 		
 		nav.stop();
 		
-		LCD.clear();
-		LCD.drawString("nav1.1 end", 0, 4);
-		
 		Map.waypointReached();
 		
-		LCD.clear();
-		LCD.drawString("nav1.2 end", 0, 4);
-		
-		if(Map.hasNewWaypoint())
-			navigateToBlock();
+/*		if(Map.hasNewWaypoint())
+			function = FunctionType.BLOCK_NAVIGATE;
 		else
-			function = FunctionType.IDENTIFY;
-		
-		LCD.clear();
-		LCD.drawString("nav1.3 end", 0, 4);
+			function = FunctionType.IDENTIFY;*/
 	}
 
 	// Handles the navigation to the end
 	private void navigateToEnd() {		
-		LCD.drawString("go home", 0, 4);
+		LCD.drawString("go home", 0, 0);
 		Map.buildEndWaypoints();
 		
 		double[] wp = new double[2];
 		Map.getWaypoint(wp);
 		
-		nav.travelTo(wp[0], wp[1]);
+		Odometer.getPosition(pos);
+		double newHeading = Math.toDegrees(Math.atan2(wp[1] - pos[1], wp[0] - pos[0]));
+
+		if(newHeading < 0)
+			newHeading += 360;
+		newHeading = newHeading % 360;
+		
+		nav.turnTo(newHeading, 0);
 		while (!nav.isDone()) {
 			try { Thread.sleep(400); } 
 			catch (InterruptedException e) { }
 		}
 		nav.stop();
+		
+		double requiredDistance = Math.sqrt(Math.pow(wp[0] - pos[0],2) + Math.pow(wp[1] - pos[1],2));
+		long startTime = System.currentTimeMillis();
+		double distanceTravelled = 0;
+		
+		nav.move();
+		while (distanceTravelled < requiredDistance) {
+			long elapsedTime = System.currentTimeMillis() - startTime;
+			distanceTravelled = Odometer.getSpeed() * elapsedTime / 1000;
+
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) { }
+		}
+		nav.stop();
+		
+		Map.waypointReached();
 		
 		function = FunctionType.RELEASE;
 	}
@@ -279,17 +341,54 @@ public class SearchTest extends Thread {
 	// Handles navigating to a point (allows the scanner to continue in case an
 	// unexpected obstacle appears (i.e. the other player)
 	private void navigateToNextPoint() {
-		LCD.drawString("navigate2", 0, 4);
+		LCD.clear();
+		LCD.drawString("next Point", 0, 0);
+		
 		Odometer.getPosition(pos);
-		Map.buildNextPointWaypoints(pos[0] + 62, pos[1] + 62);
+		double[] endZone = Map.getEndCenter();
+		
+		// Calculate Heading
+		double heading = Math.toDegrees(Math.atan2(endZone[1] - pos[1], endZone[0] - pos[0]));
+		if(heading < 0)
+			heading += 360;
+		heading = heading % 360;
+		LCD.drawString("ex:" + (int)endZone[0] + " ey:" + (int)endZone[1] + " h:" + heading, 0,1);
+		
+		// Find offsets
+		double xOffset = 45 * Math.cos(Math.toRadians(heading));
+		double yOffset = 45 * Math.sin(Math.toRadians(heading));
+		
+		Map.buildNextPointWaypoints(pos[0] + xOffset, pos[1] + yOffset);
 		
 		while(Map.hasNewWaypoint()){
 			double[] wp = new double[2];
+			
 			Map.getWaypoint(wp);
 			
-			nav.travelTo(wp[0], wp[1]);
+			LCD.drawString((int)wp[0] + "|" + (int)wp[1],0,2);
+			Odometer.getPosition(pos);
+			double newHeading = Math.toDegrees(Math.atan2(wp[1] - pos[1], wp[0] - pos[0]));
+			if(newHeading < 0)
+				newHeading += 360;
+			newHeading = newHeading % 360;
+			
+			nav.turnTo(newHeading, 0);
 			while (!nav.isDone()) {
 				try { Thread.sleep(400); } 
+				catch (InterruptedException e) { }
+			}
+			nav.stop();
+			
+			double requiredDistance = Math.sqrt(Math.pow(wp[0] - pos[0],2) + Math.pow(wp[1] - pos[1],2));
+			long startTime = System.currentTimeMillis();
+			double distanceTravelled = 0;
+			
+			nav.move();
+			while (distanceTravelled < requiredDistance) {
+				long elapsedTime = System.currentTimeMillis() - startTime;
+				distanceTravelled = Odometer.getSpeed() * elapsedTime / 1000;
+
+				try { Thread.sleep(50); } 
 				catch (InterruptedException e) { }
 			}
 			nav.stop();
@@ -297,41 +396,49 @@ public class SearchTest extends Thread {
 			Map.waypointReached();
 		}
 
+		Odometer.getPosition(pos);
+		searchFrom = pos[2] - 90;
+		searchTo = pos[2] + 90;
 		function = FunctionType.SEARCH;
 	}
 	
 	// Identifies a specific block
 	private void identify() {
-		LCD.drawString("identify", 0, 4);
+		LCD.drawString("identify", 0, 0);
 		
 		// if the block is blue collect it
 		if (id.isBlue()) {
 			LCD.drawString("blue", 0,7);
-			Map.blockChecked(true);
 			function = FunctionType.COLLECT;
 		}
 		
 		// else the robot has backed up and does a search
 		else {
 			LCD.drawString("not blue", 0,7);
-			Map.blockChecked(false);
+			Odometer.getPosition(pos);
+			Map.addBlock(us.getFilteredData() / 2, pos[2]);
+			
+			searchFrom = pos[2];
+			searchTo = pos[2] + 180;
+			function = FunctionType.SEARCH;
+/*			Map.blockChecked(false);
 			Map.buildNextBlockWaypoints();
 			
 			if(Map.hasNewWaypoint())
 				function = FunctionType.BLOCK_NAVIGATE;
 			else
-				function = FunctionType.POINT_NAVIGATE;
+				function = FunctionType.POINT_NAVIGATE;*/
 		}	
 	}
 
 	// Collects navigated-to block
 	private void collect() {
-		LCD.drawString("collect", 0,4);
+		LCD.drawString("collect", 0,0);
 		collection.lowerCage();
 		collection.openCage();
 		
 		nav.move();
-		try { Thread.sleep(2500); } 
+		try { Thread.sleep(3500); } 
 		catch (InterruptedException e) { }
 		nav.stop();
 		
@@ -341,8 +448,9 @@ public class SearchTest extends Thread {
 		collection.closeCage();
 		collection.raiseCage();
 
-		function = FunctionType.END_NAVIGATE;
+		function = FunctionType.IDLE;
 	}
+	
 	// Releases the entire stack (only done at the end of the match)
 	private void release() {
 		collection.release();
@@ -354,6 +462,7 @@ public class SearchTest extends Thread {
 		
 		function = FunctionType.IDLE;
 	}
+
 	public void alignBlock() {
 		nav.move();
 		try {Thread.sleep(3000);} catch(InterruptedException e) {}
