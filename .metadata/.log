@@ -494,3 +494,23 @@ java.lang.OutOfMemoryError: Requested array size exceeds VM limit
 	at org.lejos.nxt.ldt.launch.MainMethodSearchHelper.searchMainMethods(MainMethodSearchHelper.java:71)
 	at org.lejos.nxt.ldt.launch.MainMethodSearchHelper$1.run(MainMethodSearchHelper.java:90)
 	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:121)
+!SESSION 2013-11-26 08:14:24.357 -----------------------------------------------
+eclipse.buildId=4.3.0.I20130605-2000
+java.version=1.7.0_25
+java.vendor=Oracle Corporation
+BootLoader constants: OS=win32, ARCH=x86, WS=win32, NL=en_US
+Framework arguments:  -product org.eclipse.epp.package.standard.product
+Command-line arguments:  -os win32 -ws win32 -arch x86 -product org.eclipse.epp.package.standard.product
+
+!ENTRY org.eclipse.egit.ui 4 0 2013-11-26 14:55:09.638
+!MESSAGE Dropping stashed commit 'b2f43b6f909656c2e59fb3f123052b693049ec52' failed
+!STACK 1
+org.eclipse.team.core.TeamException: Stash reflog does not contain entry ''{0}''
+	at org.eclipse.egit.core.op.StashDropOperation$1.run(StashDropOperation.java:60)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2345)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2327)
+	at org.eclipse.egit.core.op.StashDropOperation.execute(StashDropOperation.java:70)
+	at org.eclipse.egit.ui.internal.repository.tree.command.StashDropCommand$2.run(StashDropCommand.java:77)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:53)
+!SUBENTRY 1 org.eclipse.team.core 4 0 2013-11-26 14:55:09.639
+!MESSAGE Stash reflog does not contain entry ''{0}''
