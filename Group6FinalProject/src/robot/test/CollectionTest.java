@@ -56,7 +56,7 @@ public class CollectionTest extends Thread{
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
-		collection.rotateCage(-330);
+		collection.rotateCage(-310);
 		
 		new LCDInfo();
 		this.start();

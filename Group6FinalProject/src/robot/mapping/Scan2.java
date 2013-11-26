@@ -41,11 +41,11 @@ public class Scan2 {
 		// Turn the scan amount to find a block
 		int confidence = 0;
 		
-		currDist = us.getFilteredData() / 2;
+		currDist = us.getR() / 2;
 		if(currDist < DISTANCE_THRESHOLD && currDist > 1)
 			confidence = 5;
 		while(!nav.isDone()){
-			currDist = us.getFilteredData() / 2;
+			currDist = us.getR() / 2;
 			
 			if(currDist < DISTANCE_THRESHOLD && currDist > 1 && confidence >= 8){
 				Odometer.getPosition(pos);

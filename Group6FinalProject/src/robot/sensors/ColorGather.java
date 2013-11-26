@@ -20,7 +20,7 @@ public class ColorGather implements TimerListener {
 	private final int WOODEN_BLOCK_THRESH = 30;
 	private double currentColorLeft;
 	private double currentColorRight;
-	private ColorSensor csLeft, csRight, csBlockReader;
+	private ColorSensor csLeft, csRight;
 	private OdometryCorrection corr;
 	private static Timer timer;
 	
@@ -36,10 +36,9 @@ public class ColorGather implements TimerListener {
 	 * @param csRight
 	 * @param csBlockReader
 	 */
-	public ColorGather(ColorSensor csLeft, ColorSensor csRight, ColorSensor csBlockReader, OdometryCorrection corr) {
+	public ColorGather(ColorSensor csLeft, ColorSensor csRight, OdometryCorrection corr) {
 		this.csLeft = csLeft;
 		this.csRight = csRight;
-		this.csBlockReader = csBlockReader;
 		this.corr = corr;
 		
 		lightReadingsLeft = new double[7];
@@ -110,62 +109,6 @@ public class ColorGather implements TimerListener {
 			long time = System.currentTimeMillis();
 			corr.update(-1, time);
 		}
-	}
-	
-	/**
-	 * Determines the int color value of object in front of the sensor
-	 * @return int - value of the red light return
-	 */
-	public int getFilteredRed() {
-		csBlockReader.setFloodlight(Color.RED);
-		return csBlockReader.getNormalizedLightValue(); 
-	}
-	
-	/**
-	 * Determines the int color value of object in front of the sensor
-	 * @return int - value of the blue light return
-	 */
-	public int getFilteredBlue() {
-		csBlockReader.setFloodlight(Color.BLUE);
-		return csBlockReader.getNormalizedLightValue();
-	}
-	
-	/**
-	 * Determines the int color value of object in front of the sensor
-	 * @return int - value of the blue light return
-	 */
-	public int getFilteredGreen() {
-		csBlockReader.setFloodlight(Color.GREEN);
-		return csBlockReader.getNormalizedLightValue();
-	}
-	
-	/**
-	 * Determines if the light sensor in the front of the robot is detecting a Styrofoam block.
-	 * @return boolean - if the block is blue
-	 */	
-	 public boolean isBlue() {
-		
-		int red = getFilteredRed();
-		try { Thread.sleep(100); } catch (InterruptedException e) {}
-		
-		int blue = getFilteredBlue();
-		try { Thread.sleep(100); }  catch (InterruptedException e) {}
-		
-		int green = getFilteredGreen();
-		try { Thread.sleep(100); }  catch (InterruptedException e) {}
-		
-		csBlockReader.setFloodlight(false);
-		
-		int sumOfAbsDiff = Math.abs(red - green) + Math.abs(red - blue) + 
-				Math.abs(green - red) + Math.abs(green - blue) + 
-				Math.abs(blue - red) + Math.abs(blue - green);
-		
-		try { Thread.sleep(500); }  catch (InterruptedException e) {}
-		
-		if(sumOfAbsDiff < WOODEN_BLOCK_THRESH)
-			return true; 
-		else
-			return false; 
 	}
 	
 	/**

@@ -6,125 +6,114 @@ import lejos.util.TimerListener;
 import lejos.nxt.LCD;
 import lejos.nxt.UltrasonicSensor;
 
-/**
- * Gathers information from the Ultrasonic sensor and filters out bad values.
- * 
- * @author Michael
- * @version 1.0.0
- * @since 
- */
 public class USGather implements TimerListener {
 	
-	private int distance;
-	private int rawDistance;
-	private boolean filter;
-	
-	private final int FLAG_THRESH = 37;
-	private final int CRITICAL_FLAG_THRESH = 20;
+	public enum HeightCategory {WOODEN_BLOCK, BLUE_BLOCK, FLOOR};
+	private HeightCategory zType = HeightCategory.FLOOR;
+	private double r,x,y,z,zSen;
 	private final int SEN_TO_CENTER = 8;
-	private final static int FILTER_OUT = 5;
+	private final int BLUE_WOODEN_THRESH = 11;
+	private final int FLOOR_BLUE_THRESH = 3;
 	private final int SLEEP_TIME = 10;
-	private final int WALL_ERROR = 20;
+	private final int TIMER_PERIOD = 25;
+	private UltrasonicSensor usXY;
+	private UltrasonicSensor usZ;
+	private Object lock;
 	private double[] pos = new double[3];
-	private UltrasonicSensor us;
 	
-	private Object lock = new Object();
-	
-	/**
-	 * Takes in the ultrasonic sensor from which to gather data.
-	 * @param us - The ultrasonic sensor gathering the information.
-	 */
-	public USGather(UltrasonicSensor us) {
-		this.us = us;
+	public USGather( UltrasonicSensor usXY, UltrasonicSensor usZ )  {
+		this.usXY = usXY;
+		this.usZ = usZ;
+		lock = new Object();
+		//initialize distance from top sensor to floor
+		do {
+			this.zSen = usZ.getDistance();
+		} while(usZ.getDistance() == 255);
 		
-		Timer timer = new Timer(25, this);
+		Timer timer = new Timer(TIMER_PERIOD, this);
 		timer.start();
 	}
 	
 	public void timedOut() {
 		synchronized(lock){
-			distance = getFilteredData();
+			updateXY();
+			updateZ();
 		}
+		LCD.clear(3);
+		LCD.clear(4);
+		LCD.clear(5);
+		LCD.drawString(( "usR: " + (int)getR() ), 0, 3);
+		LCD.drawString(( "usX: " + (int)getX() ), 0, 4);
+		LCD.drawString(( "usY: " + (int)getY() ), 8, 4);
+		LCD.drawString(( "usZ: " + (int)getZ() ), 0, 5);
+		LCD.drawString(( "usZType: " + getZType() ), 0, 6);
 	}
 	
-	
+	//methods to update x,y and z values
+	private void updateXY() {
+		//do a ping
+		usXY.ping();
+		//wait for the ping to complete
+		try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}
+		//if 255 return without update
+		if( usXY.getDistance() != 255 ) {
+			Odometer.getPosition(pos);
+			r = usXY.getDistance() + SEN_TO_CENTER;
 
-	//method to check for obstruction block when navigating to waypoint
-	public boolean flagObstruction() {
-		if(getRawDistance() < FLAG_THRESH) 
-			return true;
-		else 
-			return false;
+			x = pos[0] + r * Math.cos(Math.toRadians(pos[2]));
+			y = pos[1] + r * Math.sin(Math.toRadians(pos[2]));
+		}		
 	}
-	public boolean criticalFlag() {
-		if(getRawDistance() < CRITICAL_FLAG_THRESH) 
-			return true;
-		else 
-			return false;
-	}
-	
-	
-	//getFilteredData will return an int after filtering out 255 values
-	public int getFilteredData() {
-		filter = true;
-		int filterControl = 0;
-			
-			while(filter) {
-				
-				// do a ping
-				us.ping();
-				// wait for the ping to complete
-				try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}
-	
-				distance = us.getDistance();
-				
-				// implemented a filter to filter out 255 values
-				if(distance == 255 && (filterControl < FILTER_OUT) ) { 
-					filterControl++; 
-				}
-				else {
-					filter = false;
-				}
-			
-			}	
-		rawDistance = distance + 2 * SEN_TO_CENTER;
-		return filterWall(distance + 2 * SEN_TO_CENTER);
+	private void updateZ() {
+		//do a ping
+		usZ.ping();
+		//wait for the ping to complete
+		try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}
+		//if 255 return without update
+		if( usZ.getDistance() != 255 ) {
+			z = zSen - usZ.getDistance();
+			if (z < 0) z = 0;
+			if( z < FLOOR_BLUE_THRESH ) this.zType = HeightCategory.FLOOR;
+			else if( z < BLUE_WOODEN_THRESH ) this.zType = HeightCategory.BLUE_BLOCK;
+			else this.zType = HeightCategory.WOODEN_BLOCK;
+		}	
 	}
 	
-	//method to test and filter out wall readings and filtering out found blocks
-	private int filterWall(int reading) {
-		Odometer.getPosition(pos);
-		double x = pos[0];
-		double y = pos[1];
-		double theta = pos[2];
-		
-		//find the x and y coordinate at distance being read
-		double readX = x + reading*Math.cos(Math.toRadians(theta));
-		double readY = y + reading*Math.sin(Math.toRadians(theta));
-		//checking if coordinate is a wall value
-		if(readY < WALL_ERROR || readY > 240 - WALL_ERROR || readX < WALL_ERROR || readX > 240 - WALL_ERROR) { 
-			LCD.drawString("WALL         ",0,1);
-			reading = -1; 
+	//getters
+	public double getR() {
+		double result;
+		synchronized (lock) {
+			result = r;
 		}
-		//checking if coordinate is a block found ???
-
-		return reading;
+		return result;
+	}
+	public double getX() {
+		double result;
+		synchronized (lock) {
+			result = x;
+		}
+		return result;
+	}
+	public double getY() {
+		double result;
+		synchronized (lock) {
+			result = y;
+		}
+		return result;
+	}
+	public double getZ() {
+		double result;
+		synchronized (lock) {
+			result = z;
+		}
+		return result;
+	}
+	public HeightCategory getZType() {
+		HeightCategory result;
+		synchronized (lock) {
+			result = zType;
+		}
+		return result;
 	}
 	
-	/**
-	 * Returns the current distance as recorded by the Ultrasonic sensor
-	 * @return double: distance
-	 */
-	public double getDistance(){
-		synchronized(lock){
-			// Should return the distance from the center of the robot
-			return distance;
-		}
-	}
-	public double getRawDistance(){
-		synchronized(lock){
-			// Should return the distance from the center of the robot
-			return rawDistance;
-		}
-	}
 }

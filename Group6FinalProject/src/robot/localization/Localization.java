@@ -79,7 +79,7 @@ public class Localization {
              
 		nav.rotate(0, 50);
 		while(true) {        //while still localizing, may put bool variable here later.                        
-			if (usGather.getRawDistance() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
+			if (usGather.getR() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
 				nav.stop(); 
 				//from the odometer
 				Odometer.getPosition(array);

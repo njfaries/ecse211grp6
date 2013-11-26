@@ -35,7 +35,7 @@ public class Scan {
 			LCD.drawString("scanning", 0, 5);
 			Odometer.getPosition(pos);
 			LCD.drawString("t: " + (int)pos[2],0,6);
-			double dist = us.getDistance();
+			double dist = us.getR();
 			double angle = (int)pos[2] + ANGLE_CORRECTION;
 
 			if(dist > 60) {

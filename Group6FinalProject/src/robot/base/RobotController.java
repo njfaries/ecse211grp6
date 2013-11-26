@@ -1,13 +1,12 @@
 package robot.base;
 
-import robot.bluetooth.PlayerRole;
-import robot.bluetooth.StartCorner;
+import robot.bluetooth.*;
 import robot.collection.*;
 import robot.localization.Localization;
-import robot.mapping.Map;
-import robot.mapping.Scan;
+import robot.mapping.*;
 import robot.navigation.*;
 import robot.sensors.*;
+
 import lejos.nxt.Button;
 import lejos.nxt.LCD;
 import lejos.nxt.Motor;
@@ -28,34 +27,26 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class RobotController extends Thread {
 	public enum FunctionType {
-		IDLE, RECEIVE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, POINT_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE
+		IDLE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, OPEN_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE, RETURN
 	};
 
 	public enum RobotMode {
 		STACKER, GARBAGE
 	};
 
-	private static double WHEEL_RADIUS = 2.125, ODOCORRECT_SENS_WIDTH,
-			ODOCORRECT_SENS_DIST;
-
-	private double scanStart = 0;
-	private int scanAngle = 90, scanDirection = 0;
-	private boolean firstScan = true;
-
+	private static double OPEN_DIST = 40;
+	
 	private static NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
 	private static NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
 	private static NXTRegulatedMotor cageMotor = new NXTRegulatedMotor(MotorPort.C);
 
 	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
-
+	private static UltrasonicSensor usTop = new UltrasonicSensor(SensorPort.S3);
+	
 	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
 	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
 
 	private CollectionSystem collection;
-
-	private OdometryCorrection corrector;
-
 	private Navigation2 nav;
 	private TwoWheeledRobot robo;
 
@@ -63,18 +54,18 @@ public class RobotController extends Thread {
 	private ColorGather cg;
 
 	private Localization loc;
-
-	private Identify id;
-
-/*	StartCorner corner;
-	PlayerRole role;*/
-	int[] greenZone;
-	int[] redZone;
+	private Scanner sc;
+	
+	StartCorner corner = StartCorner.BOTTOM_LEFT;
+	PlayerRole role = PlayerRole.BUILDER;
+	int[] greenZone = new int[] {60,90,90,120};
+	int[] redZone = new int[4];
 
 	private int blocksCollected = 0;
 	private int maxBlocks = 2;
+	private double searchFrom = 0, searchTo = 90;
 	
-	private FunctionType function = FunctionType.LOCALIZE;
+	private FunctionType function = FunctionType.SEARCH;
 
 	private double[] pos = new double[3];
 
@@ -87,58 +78,113 @@ public class RobotController extends Thread {
 	 * subtasks like localization, searching and collection.
 	 */
 	public RobotController() {
-		receive();
+		//receive();
 		
-		new Map(PlayerRole.BUILDER, greenZone, redZone);
-		new LCDInfo();
+		new Map2(role, greenZone, redZone);
 
-		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
+		us = new USGather(usFront, usTop);
+		cg = new ColorGather(csLeft, csRight, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
 		
 		//need to construct localization with transmission.startingCorner
 		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
+		sc = new Scanner(nav, us);
 		
 		//corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
 		new Odometer(robo);
 
-		id = new Identify(cg, us, nav);
+		//id = new Identify(cg, us, nav);
 
 		collection = new CollectionSystem(cageMotor, nav);
-
+		collection.rotateCage(-430);
+		
 		this.start();
 	}
 
 	// Runs all the control code (calling localization, navigation,
 	// identification, etc)
 	public void run() {
-		while (true) {
-			if (function == FunctionType.LOCALIZE)
-				localize();
-			else if (function == FunctionType.SEARCH)
-				search(scanStart, scanAngle, scanDirection);
-			else if (function == FunctionType.BLOCK_NAVIGATE)
-				navigateToBlock();
-			else if (function == FunctionType.IDENTIFY)
-				identify();
-			else if (function == FunctionType.COLLECT)
-				collect();
-			else if (function == FunctionType.RELEASE)
-				release();
-
-			try {
-				Thread.sleep(50);
-			} catch (InterruptedException e) {
-
+		boolean running = true;
+		double[] endCenter = Map2.getEndCenter();
+		
+		while (running) {
+			switch(function) {
+				case IDLE:
+					try { Thread.sleep(500); }
+					catch(InterruptedException e){ }
+					continue;
+				case LOCALIZE:
+					localize();
+					
+					searchFrom = 0;
+					searchTo = 90;
+					function = FunctionType.SEARCH;
+					continue;
+				case SEARCH:
+					sc.scanRange(searchFrom, searchTo);
+					function = FunctionType.OPEN_NAVIGATE;
+					continue;
+				case BLOCK_NAVIGATE: 
+				case IDENTIFY:
+				case OPEN_NAVIGATE:
+					double t = sc.bestOpenAngle(searchFrom, searchTo, endCenter[0], endCenter[1]);
+					//if -1 is return of best open angle, none open, scan again
+					if(t == -1) { 
+						function = FunctionType.SEARCH;
+						break;
+					}
+					Odometer.getPosition(pos);
+					double x = pos[0] + OPEN_DIST * Math.cos(Math.toRadians(t));
+					double y = pos[1] + OPEN_DIST * Math.sin(Math.toRadians(t));
+					
+					
+					//if green zone center is within a threshold go to it as it is assumed as open
+					if(blocksCollected >= maxBlocks && Math.abs(pos[0] - endCenter[0]) < 15 
+							&& Math.abs(pos[1] - endCenter[1]) < 15 ) {
+						function = FunctionType.RELEASE;
+						break;
+					}
+					else 
+						nav.travelTo(x, y);
+					while( !nav.isDone() ) {
+						try { Thread.sleep(200); }
+						catch(InterruptedException e){ }
+					}
+					Odometer.getPosition(pos);
+					searchFrom = pos[2] - 45;
+					searchTo = pos[2] + 45;
+					
+					function = FunctionType.SEARCH;
+					continue;
+				case END_NAVIGATE:
+					
+				case COLLECT:
+					collect();
+					continue;
+				case RELEASE:
+					endCenter = Map2.getEndCenter();
+					nav.travelTo(endCenter[0], endCenter[1]);
+					while( !nav.isDone() ) {
+						try { Thread.sleep(200); }
+						catch(InterruptedException e){ }
+					}
+					release();
+					continue;
+				case RETURN:
+					returnToStart();
+					running = false;
+					continue;
 			}
+			
+			try { Thread.sleep(50); } catch (InterruptedException e) { }
 		}
 	}
 
 	// Receives instruction via bluetooth
 	private void receive() {
-/*		BluetoothConnection conn = new BluetoothConnection();
+		BluetoothConnection conn = new BluetoothConnection();
 		// as of this point the bluetooth connection is closed again, and you can pair to another NXT (or PC) if you wish
 		
 		Transmission t = conn.getTransmission();
@@ -154,66 +200,13 @@ public class RobotController extends Thread {
 			redZone = t.redZone;
 		}
 		// stall until user decides to end program
-		Button.waitForAnyPress();*/
+		Button.waitForAnyPress();
 	}
 
 	// Initiates the localization of the robot
 	private void localize() {
 		cageMotor.rotate(-330);
 		loc.localize();
-		function = FunctionType.SEARCH; // Once finished localizing robot goes
-										// immediately to search mode.
-	}
-
-	// Search method (performs scans)
-	private void search(double fromAngle, double toAngle, int direction) {
-		
-		if(!firstScan) {
-			Odometer.getPosition(pos);
-			scanStart = pos[2];
-			scanAngle = (int)pos[2] + 357;
-			direction = 1;
-		}
-		
-		//0 as to turn to with smallest angle before starting the scan
-		nav.turnTo(fromAngle, 0);
-		while (!nav.isDone()) {
-			try {
-				Thread.sleep(400);
-			} catch (InterruptedException e) {
-			}
-		}
-		nav.turnTo(toAngle, direction);
-
-		new Scan(nav, us);
-
-		while (!Scan.scanParsed()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-
-		if (Map.hasNewWaypoint()) {
-			double[] wp = new double[] { 0, 0 };
-			Map.getWaypoint(wp);
-			nav.travelTo(wp[0], wp[1]);
-
-			function = FunctionType.BLOCK_NAVIGATE;
-		}
-		//after first execution of search change search to angles
-		if(firstScan) firstScan = false;
-	}
-
-	// Handles navigating to a point (allows the scanner to continue in case an
-	// unexpected obstacle appears (i.e. the other player)
-	private void navigateToBlock() {
-		//Odometer.runCorrection(true);
-		while (!nav.isDone()) {
-			// Keep the ultrasonic sensor scanning to detect obstacles
-			// If an obstacle appears (probably the other player)
-			// nav.stop();
-		}
-
-		function = FunctionType.IDENTIFY;
 	}
 
 	// Identifies a specific block
@@ -227,42 +220,56 @@ public class RobotController extends Thread {
 			collection.lowerCage();
 			collection.openCage();
 			
-			nav.moveStraight(20);
-			while(!nav.isDone()){
-				try { Thread.sleep(400); } 
-				catch (InterruptedException e) { }
-			}
+			nav.move();
+			try { Thread.sleep(2000); } 
+			catch (InterruptedException e) {}
+			nav.stop();
+			
+			try { Thread.sleep(250); } 
+			catch (InterruptedException e) {}
 			
 			collection.closeCage();
 			collection.raiseCage();
 		}
 		else{
-			nav.moveStraight(20);
-			while(!nav.isDone()){
-				try { Thread.sleep(400); } 
-				catch (InterruptedException e) { }
-			}
+			nav.move();
+			try {Thread.sleep(3000);} catch(InterruptedException e) {}
+			nav.stop();
 			
-			collection.collect();
+			nav.reverse();
+			try {Thread.sleep(50);} catch(InterruptedException e) {}
+			//while(us.getDistance() > 5);
+			nav.stop();
+			
+			collection.lowerCage();
+			collection.openCage();
+			
+			nav.move();
+			try {Thread.sleep(500);}
+			catch (InterruptedException e) {}
+			nav.stop();
+			
+			collection.closeCage();
+			collection.raiseCage();
 		}
 		
 		blocksCollected++;
 		
-		if(blocksCollected >= maxBlocks)
-			function = FunctionType.END_NAVIGATE;
-		else
-			function = FunctionType.SEARCH;
-	}
-
-	// Handles the navigation to the end
-	private void navigateToEnd() {
-
+		function = FunctionType.OPEN_NAVIGATE;
 	}
 
 	// Releases the entire stack (only done at the end of the match)
 	private void release() {
 		collection.release();
-		function = FunctionType.IDLE;
+		
+		nav.reverse();
+		try { Thread.sleep(2500); } 
+		catch (InterruptedException e) { }
+		nav.stop();
+	}
+	
+	private void returnToStart(){
+		
 	}
 
 }

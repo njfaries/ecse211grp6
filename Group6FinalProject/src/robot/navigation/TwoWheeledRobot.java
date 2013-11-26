@@ -13,6 +13,7 @@ public class TwoWheeledRobot {
 	public static final double DEFAULT_LEFT_RADIUS = 2.125;
 	public static final double DEFAULT_RIGHT_RADIUS = 2.125;
 	public static final double DEFAULT_WIDTH = 22.0;
+	public static final int MOTOR_SPEED = 169;
 	private NXTRegulatedMotor leftMotor, rightMotor;
 	private double leftRadius, rightRadius, width;
 	private double forwardSpeed = 0, rotationSpeed = 0;
@@ -76,52 +77,12 @@ public class TwoWheeledRobot {
 		return rightMotor.getRotationSpeed();
 	}
 	// mutators
-	/**
-	 * Sets the forward traveling speed of the robot
-	 * @param speed - movement speed
-	 */
-	public void setForwardSpeed(double speed) {
-		forwardSpeed = speed;
-		setSpeeds(forwardSpeed, rotationSpeed);
-	}
-	
-	/**
-	 * Sets the rotation speed for the robot
-	 * @param speed - rotation speed
-	 */
-	public void setRotationSpeed(double speed) {
-		rotationSpeed = speed;
-		setSpeeds(forwardSpeed, rotationSpeed);
-	}
-	
-	void setSpeeds(double forwardSpeed, double rotationalSpeed) {
-		double leftSpeed, rightSpeed;
-
-		this.forwardSpeed = forwardSpeed;
-		this.rotationSpeed = rotationalSpeed; 
-		
-		leftSpeed = (forwardSpeed + rotationalSpeed * width * Math.PI / 360.0) *
-				180.0 / (leftRadius * Math.PI);
-		rightSpeed = (forwardSpeed - rotationalSpeed * width * Math.PI / 360.0) *
-				180.0 / (rightRadius * Math.PI);
-	
-		synchronized(lock){
-			// set motor speeds
-			if (leftSpeed > 900.0)
-				leftMotor.setSpeed(900);
-			else
-				leftMotor.setSpeed((int)leftSpeed);
-			
-			if (rightSpeed > 900.0)
-				rightMotor.setSpeed(900);
-			else
-				rightMotor.setSpeed((int)rightSpeed);
-		}
-	}
 	public void turn(int direction){
 		synchronized(lock){
+			leftMotor.setSpeed(MOTOR_SPEED);
+			rightMotor.setSpeed(MOTOR_SPEED);
+			
 			if(direction == 0){
-				
 				leftMotor.forward();
 				rightMotor.backward();
 			}
@@ -133,12 +94,19 @@ public class TwoWheeledRobot {
 	}
 	public void goForward(){
 		synchronized(lock){
+			leftMotor.setSpeed(MOTOR_SPEED);
+			rightMotor.setSpeed(MOTOR_SPEED);
+			
 			rightMotor.forward();
 			leftMotor.forward();
 		}
 	}
 	public void goBackward(){
 		synchronized(lock){
+			leftMotor.setSpeed(MOTOR_SPEED);
+			rightMotor.setSpeed(MOTOR_SPEED);
+			
+			
 			rightMotor.backward();
 			leftMotor.backward();
 		}
