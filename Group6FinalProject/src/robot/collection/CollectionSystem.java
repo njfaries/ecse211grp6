@@ -16,7 +16,7 @@ public class CollectionSystem {
 	
     private static final int CLAW_SPEED = 150; //speed in degrees per second
     private static final int CLAW_TIME = 3300; //time in ms
-    private static final int RAISE_TIME = 1500; //time in ms
+    private static final int RAISE_TIME = 2000; //time in ms
     private static final int OPEN_TIME = 1300; //time in ms
     
 	private NXTRegulatedMotor cageMotor;
