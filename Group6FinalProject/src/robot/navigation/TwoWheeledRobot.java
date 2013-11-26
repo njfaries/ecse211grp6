@@ -13,7 +13,7 @@ public class TwoWheeledRobot {
 	public static final double DEFAULT_LEFT_RADIUS = 2.125;
 	public static final double DEFAULT_RIGHT_RADIUS = 2.125;
 	public static final double DEFAULT_WIDTH = 22.0;
-	public static final int MOTOR_SPEED = 169;
+	public static final int MOTOR_SPEED = 269;
 	private NXTRegulatedMotor leftMotor, rightMotor;
 	private double leftRadius, rightRadius, width;
 	private double forwardSpeed = 0, rotationSpeed = 0;
