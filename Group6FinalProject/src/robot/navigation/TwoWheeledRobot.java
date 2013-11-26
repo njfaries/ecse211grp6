@@ -121,6 +121,7 @@ public class TwoWheeledRobot {
 	public void turn(int direction){
 		synchronized(lock){
 			if(direction == 0){
+				
 				leftMotor.forward();
 				rightMotor.backward();
 			}
