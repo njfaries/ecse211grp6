@@ -146,12 +146,20 @@ public class RobotController extends Thread {
 						function = FunctionType.RELEASE;
 						break;
 					}
-					else 
-						nav.travelTo(x, y);
+					
+					double heading = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0]));
+					nav.turnTo(heading,0);
 					while( !nav.isDone() ) {
 						try { Thread.sleep(200); }
 						catch(InterruptedException e){ }
 					}
+					nav.stop();
+					
+					nav.move();
+					try { Thread.sleep(3000); }
+					catch(InterruptedException e){ }
+					nav.stop();
+					
 					Odometer.getPosition(pos);
 					searchFrom = pos[2] - 45;
 					searchTo = pos[2] + 45;
@@ -308,8 +316,8 @@ public class RobotController extends Thread {
 		
 		blocksCollected++;
 		
-		navigateBoard(1);
-		//function = FunctionType.OPEN_NAVIGATE;
+		//navigateBoard(1);
+		function = FunctionType.OPEN_NAVIGATE;
 	}
 
 	// Releases the entire stack (only done at the end of the match)

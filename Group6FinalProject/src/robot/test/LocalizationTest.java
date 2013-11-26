@@ -28,12 +28,15 @@ public class LocalizationTest {
 	private static NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
 	private static NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
 	private static UltrasonicSensor us = new UltrasonicSensor(SensorPort.S4);
+	private static UltrasonicSensor usTop = new UltrasonicSensor(SensorPort.S3);
+	
 	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
 	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlock = new ColorSensor(SensorPort.S3);
+	
 	
 	private static TwoWheeledRobot robo;
 	private static Localization loc;
+	private double[] pos = new double[3];
 	
 	public static void main(String args[]) {
 		Motor.C.rotate(-330);
@@ -52,8 +55,8 @@ public class LocalizationTest {
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo);
 		Navigation2 nav = new Navigation2(robo);
-		ColorGather cg = new ColorGather(csLeft, csRight, csBlock, new OdometryCorrection());
-		USGather usg = new USGather(us);
+		ColorGather cg = new ColorGather(csLeft, csRight, new OdometryCorrection());
+		USGather usg = new USGather(us, usTop);
 		
 		loc = new Localization(usg, cg, StartCorner.BOTTOM_LEFT, nav);
 		
@@ -62,6 +65,9 @@ public class LocalizationTest {
 		//loc.usLocalization();
 		loc.localize();
 		
+		Odometer.getPosition(pos);
+		LCD.drawString("x:" + (int)pos[0] + "y:" + (int)pos[1],0,0);
+		LCD.drawString("t:" + pos[2],0,1);
 		//this.start();
 	}
 }

@@ -18,9 +18,10 @@ public class Localization {
         //public enum StartCorner {BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT};
 		private final int US_OFFSET = 8;                                //Measured value (distance from centre)
         private final double LS_OFFSET_ANGLE = 29.74488;//Measured value (degrees from central axis)
-        private final double LS_OFFSET_DIST = 7;                //Measured value (distance from centre of rotation)
+        private final double LS_OFFSET_DIST = 7.5;                //Measured value (distance from centre of rotation)
         private final int WALL_DISTANCE = 40;                         //Arbitrary value. Not tested
-        private final int ROTATION_SPEED = 300;                 //Needs to be tested
+        private final int ROTATION_SPEED = 40;                 //Needs to be tested
+        private final int ZOOM_SPEED = 60;
         private Navigation2 nav;        
         private USGather usGather;
         private ColorGather colorGather;
@@ -76,10 +77,11 @@ public class Localization {
 			try { Thread.sleep(20); } catch (InterruptedException e) {}                                                                                                       //it is no longer facing wall.
 		}
 		nav.stop();*/
-             
-		nav.rotate(0, 50);
+        nav.stop();
+        
+		nav.rotate(0, ZOOM_SPEED);
 		while(true) {        //while still localizing, may put bool variable here later.                        
-			if (usGather.getR() < (WALL_DISTANCE + 2 * US_OFFSET)) {                                //Once the rising edge is detected...
+			if (usGather.getR() < (WALL_DISTANCE + 2 * US_OFFSET) && usGather.getR() > 0) {                                //Once the rising edge is detected...
 				nav.stop(); 
 				//from the odometer
 				Odometer.getPosition(array);
@@ -93,8 +95,8 @@ public class Localization {
 				}
 				
                 //been changed) then set angleA and reverse the direction.                                                                                            //The sleep is to ensure that the same edge is not picked
-				nav.rotate(1, 50);
-				try { Thread.sleep(1000); } catch (InterruptedException e) {}        //up again.
+				nav.rotate(1, ZOOM_SPEED);
+				try { Thread.sleep(2000); } catch (InterruptedException e) {}        //up again.
 			}
 			
 			try { Thread.sleep(50); }  catch (InterruptedException e) {}   
@@ -118,7 +120,7 @@ public class Localization {
                 
                 boolean isOnLine = false;
                 
-                nav.rotate(0, 50);
+                nav.rotate(0, ROTATION_SPEED);
                 while(counter < 4) {
                         if (colorGather.isOnLine(0) && !isOnLine) {				//0 = left sensor on robot
                                 Odometer.getPosition(array);

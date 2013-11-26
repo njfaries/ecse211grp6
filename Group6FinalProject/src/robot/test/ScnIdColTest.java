@@ -1,256 +1,317 @@
 package robot.test;
 
-import robot.base.RobotController.FunctionType;
-import robot.base.RobotController.RobotMode;
-import robot.bluetooth.PlayerRole;
+import robot.bluetooth.*;
 import robot.collection.*;
-import robot.mapping.Map;
-import robot.mapping.Scan;
+import robot.localization.Localization;
+import robot.mapping.*;
 import robot.navigation.*;
 import robot.sensors.*;
-import lejos.nxt.ColorSensor;
+
+import lejos.nxt.Button;
 import lejos.nxt.LCD;
 import lejos.nxt.Motor;
+import lejos.nxt.MotorPort;
 import lejos.nxt.NXTRegulatedMotor;
+import lejos.nxt.ColorSensor;
 import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
 
 /**
- * Contains the main method for the robot.
- * Initiates classes and passes them the necessary motors, sensors, and various constants.
- * Controls and and delegates tasks to various subroutines.
+ * Contains the main method for the robot. Initiates classes and passes them the
+ * necessary motors, sensors, and various constants. Controls and and delegates
+ * tasks to various subroutines.
  * 
- * @author Andreas
- * @version 1.1.0
+ * @author Andreas, Nathaniel
+ * @version 1.2.0
  * @since 2013-11-04
  */
-public class ScnIdColTest extends Thread{	
-	private NXTRegulatedMotor leftMotor = Motor.A;
-	private NXTRegulatedMotor rightMotor = Motor.B;
-	private NXTRegulatedMotor cageMotor = Motor.C;
+public class ScnIdColTest extends Thread {
+	public enum FunctionType {
+		IDLE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, OPEN_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE, RETURN
+	};
+
+	public enum RobotMode {
+		STACKER, GARBAGE
+	};
+
+	private static double OPEN_DIST = 40;
 	
-	private UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
-		
+	private static NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
+	private static NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
+	private static NXTRegulatedMotor cageMotor = new NXTRegulatedMotor(MotorPort.C);
+
+	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
+	private static UltrasonicSensor usTop = new UltrasonicSensor(SensorPort.S3);
+	
 	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
 	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
-	
+
+	private CollectionSystem collection;
 	private Navigation2 nav;
 	private TwoWheeledRobot robo;
-	
-	private ColorGather cg;
+
 	private USGather us;
+	private ColorGather cg;
+
+	private Localization loc;
+	private Scanner sc;
 	
-	private Identify id;
-	CollectionSystem collection; 
-			
+	StartCorner corner = StartCorner.BOTTOM_LEFT;
+	PlayerRole role = PlayerRole.BUILDER;
+	int[] greenZone = new int[] {60,90,90,120};
+	int[] redZone = new int[4];
+
+	private int blocksCollected = 0;
+	private int maxBlocks = 2;
+	private double searchFrom = 0, searchTo = 90;
+	
 	private FunctionType function = FunctionType.SEARCH;
-	private RobotMode mode = RobotMode.STACKER;
-	
-	double[] pos = new double[3];
-	
+
+	private double[] pos = new double[3];
+
 	public static void main(String[] args) {
 		new ScnIdColTest();
 	}
+
 	/**
-	 * The scanning test tests the ability for the robot to scan its surroundings and find blocks.
-	 * This involves running the Scan() while rotating using Navigation.turnTo(x,y)
+	 * The robot controller delegates the starting and ending of various
+	 * subtasks like localization, searching and collection.
 	 */
-	public ScnIdColTest(){
-		new Map(PlayerRole.BUILDER, new int[]{-1,-1,0,0}, new int[]{60,60,90,90});
+	public ScnIdColTest() {
+		//receive();
 		
-		collection = new CollectionSystem(cageMotor, nav);
-		collection.rotateCage(-330);
-		
-		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
+		new Map2(role, greenZone, redZone);
+
+		us = new USGather(usFront, usTop);
+		cg = new ColorGather(csLeft, csRight, new OdometryCorrection());
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
+		
+		//need to construct localization with transmission.startingCorner
+		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
+		sc = new Scanner(nav, us);
+		
+		//corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
 		new Odometer(robo);
-		
-		id = new Identify(cg, us, nav);
-		
-		//new LCDInfo();
+
+		//id = new Identify(cg, us, nav);
+
+		collection = new CollectionSystem(cageMotor, nav);
+		collection.rotateCage(-430);
 		
 		this.start();
 	}
-	
-	// Runs all the control code (calling localization, navigation, identification, etc)
-	public void run(){
-		while(true){
-			LCD.clear();
-			if(function == FunctionType.SEARCH)
-				search(0,90);
-			else if(function == FunctionType.BLOCK_NAVIGATE)
-				navigateToBlock();	
-			else if(function == FunctionType.END_NAVIGATE)
-				navigateToEnd();
-			else if (function == FunctionType.POINT_NAVIGATE)
-				navigateToNextPoint();
-			else if(function == FunctionType.IDENTIFY)
-				identify();			
-			else if(function == FunctionType.COLLECT)
-				collect();	
-			else if(function == FunctionType.RELEASE)
-				release();	
+
+	// Runs all the control code (calling localization, navigation,
+	// identification, etc)
+	public void run() {
+		boolean running = true;
+		double[] endCenter = Map2.getEndCenter();
+		
+		while (running) {
+			switch(function) {
+				case IDLE:
+					try { Thread.sleep(500); }
+					catch(InterruptedException e){ }
+					continue;
+				case LOCALIZE:
+					localize();
+					
+					searchFrom = 0;
+					searchTo = 90;
+					function = FunctionType.SEARCH;
+					continue;
+				case SEARCH:
+					sc.scanRange(searchFrom, searchTo);
+					function = FunctionType.OPEN_NAVIGATE;
+					continue;
+				case BLOCK_NAVIGATE: 
+				case IDENTIFY:
+				case OPEN_NAVIGATE:
+					double t = sc.bestOpenAngle(searchFrom, searchTo, endCenter[0], endCenter[1]);
+					//if -1 is return of best open angle, none open, scan again
+					if(t == -1) { 
+						function = FunctionType.SEARCH;
+						break;
+					}
+					Odometer.getPosition(pos);
+					double x = pos[0] + OPEN_DIST * Math.cos(Math.toRadians(t));
+					double y = pos[1] + OPEN_DIST * Math.sin(Math.toRadians(t));
+					
+					
+					//if green zone center is within a threshold go to it as it is assumed as open
+					if(blocksCollected >= maxBlocks && Math.abs(pos[0] - endCenter[0]) < 15 
+							&& Math.abs(pos[1] - endCenter[1]) < 15 ) {
+						function = FunctionType.RELEASE;
+						break;
+					}
+					else 
+						nav.travelTo(x, y);
+					while( !nav.isDone() ) {
+						try { Thread.sleep(200); }
+						catch(InterruptedException e){ }
+					}
+					Odometer.getPosition(pos);
+					searchFrom = pos[2] - 45;
+					searchTo = pos[2] + 45;
+					
+					function = FunctionType.SEARCH;
+					continue;
+				case END_NAVIGATE:
+					
+				case COLLECT:
+					collect();
+					continue;
+				case RELEASE:
+					endCenter = Map2.getEndCenter();
+					nav.travelTo(endCenter[0], endCenter[1]);
+					while( !nav.isDone() ) {
+						try { Thread.sleep(200); }
+						catch(InterruptedException e){ }
+					}
+					release();
+					continue;
+				case RETURN:
+					returnToStart();
+					running = false;
+					continue;
+			}
 			
-			try{ Thread.sleep(500); }
-			catch(InterruptedException e){ }
+			try { Thread.sleep(50); } catch (InterruptedException e) { }
 		}
 	}
-	// Search method (performs scans)
-	private void search(double fromAngle, double toAngle){
-		LCD.drawString("search", 0, 4);
-		//0 as to turn to with smallest angle before starting the scan
-		nav.turnTo(fromAngle, 0);
-		while (!nav.isDone()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-		nav.turnTo(toAngle, 1);
 
-		new Scan(nav, us);
+	// Receives instruction via bluetooth
+	private void receive() {
+		BluetoothConnection conn = new BluetoothConnection();
+		// as of this point the bluetooth connection is closed again, and you can pair to another NXT (or PC) if you wish
 		
-		while (!Scan.scanParsed()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
+		Transmission t = conn.getTransmission();
+		if (t == null) {
+			LCD.drawString("Failed to read transmission", 0, 5);
+		} else {
+			corner = t.startingCorner;
+			role = t.role;
+			// green zone is defined by these (bottom-left and top-right) corners:
+			greenZone = t.greenZone;
+			
+			// red zone is defined by these (bottom-left and top-right) corners:
+			redZone = t.redZone;
 		}
-		LCD.drawString("search done", 0, 4);
+		// stall until user decides to end program
+		Button.waitForAnyPress();
+	}
+
+	// Initiates the localization of the robot
+	private void localize() {
+		cageMotor.rotate(-330);
+		loc.localize();
+	}
+	
+	private void navigateBoard(int mode){
+		// Back up a bit
+		nav.reverse();
+		try { Thread.sleep(500); } 
+		catch (InterruptedException e) {}
+		nav.stop();
 		
-		Map.cleanBlocks();
-		Map.buildNextBlockWaypoints();
-		
-		if (Map.hasNewWaypoint()) {
-			function = FunctionType.BLOCK_NAVIGATE;
+		// Turn either by +-90degrees or to face the green (or red) zone
+		Odometer.getPosition(pos);
+		double turnAngle = 0;
+		if(mode == 1){
+			double[] endCenter = Map2.getEndCenter();
+			turnAngle = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0])) - pos[2];
 		}
 		else{
-			function = FunctionType.IDLE;
-		}
-	}
-	// Handles navigating to a block (allows the scanner to continue in case an
-	// unexpected obstacle appears (i.e. the other player)
-	private void navigateToBlock() {
-		LCD.drawString("nav1 start", 0, 4);
-		double[] wp = new double[2];
-		Map.getWaypoint(wp);
-		
-		Odometer.getPosition(pos);
-		double angle = Math.toDegrees(Math.atan2(wp[1] - pos[1], wp[0] - pos[0]));
-		nav.turnTo(angle, 0);
-
-		while (!nav.isDone()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-		
-		nav.stop();
-		
-		LCD.clear();
-		LCD.drawString("nav1.0 end", 0, 4);
-		
-		nav.move();
-		
-		while (us.getRawDistance() - 14 > 20) {
-			try { Thread.sleep(20); } 
-			catch (InterruptedException e) { }
-		}
-		
-		nav.stop();
-		
-		LCD.clear();
-		LCD.drawString("nav1.1 end", 0, 4);
-		
-		Map.waypointReached();
-		
-		LCD.clear();
-		LCD.drawString("nav1.2 end", 0, 4);
-		
-		if(Map.hasNewWaypoint())
-			navigateToBlock();
-		else
-			function = FunctionType.IDENTIFY;
-		
-		LCD.clear();
-		LCD.drawString("nav1.3 end", 0, 4);
-	}
-	// Handles the navigation to the end
-	private void navigateToEnd() {		
-		LCD.drawString("go home", 0, 4);
-		Map.buildEndWaypoints();
-		
-		double[] wp = new double[2];
-		Map.getWaypoint(wp);
-		
-		nav.travelTo(wp[0], wp[1]);
-		while (!nav.isDone()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-		nav.stop();
-		
-		function = FunctionType.RELEASE;
-	}
-	private void navigateToNextPoint() {
-		LCD.drawString("navigate2", 0, 4);
-		
-		Odometer.getPosition(pos);
-		nav.turnTo(45, 0);
-
-		while (!nav.isDone()) {
-			try { Thread.sleep(400); } 
-			catch (InterruptedException e) { }
-		}
-		nav.stop();
-		
-		nav.move();
-		try { Thread.sleep(2500); } 
-		catch (InterruptedException e) { }
-		nav.stop();
-		
-		function = FunctionType.SEARCH;
-	}
-	// Identifies a block
-	private void identify(){		
-		LCD.drawString("identify", 0, 4);
-		
-		// if the block is blue collect it
-		if (id.isBlue()) {
-			LCD.drawString("blue", 0,7);
-			Map.blockChecked(true);
-			function = FunctionType.COLLECT;
-		}
-		
-		// else the robot has backed up and does a search
-		else {
-			LCD.drawString("not blue", 0,7);
-			Map.blockChecked(false);
-			Map.buildNextBlockWaypoints();
-			
-			if(Map.hasNewWaypoint())
-				function = FunctionType.BLOCK_NAVIGATE;
+			if(pos[2] > 45 && pos[2] < 180)
+				turnAngle = -90;
 			else
-				function = FunctionType.POINT_NAVIGATE;
-		}		
-	}
-	// Collects said block
-	private void collect(){
-		LCD.drawString("collect", 0,4);
-		collection.lowerCage();
-		collection.openCage();
+				turnAngle = 90;
+		}
+		// Fix angle if needed
+		if(turnAngle < 0)
+			turnAngle += 360;
+		turnAngle = turnAngle % 360;
 		
-		nav.move();
-		try { Thread.sleep(2500); } 
-		catch (InterruptedException e) { }
+		// Turn
+		nav.turnTo(pos[2] + turnAngle, 0);
+		while(!nav.isDone()){
+			try { Thread.sleep(250); } 
+			catch (InterruptedException e) {}
+		}
 		nav.stop();
 		
-		try { Thread.sleep(250); } 
-		catch (InterruptedException e) { }
+		// Go forward until an obstacle is found
+		nav.move();
+		while(!us.flagObstruction()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		// While an obstruction is flagged and no block is seen, continue forward (may return instantly)
+		while(us.getZType() == USGather.HeightCategory.FLOOR && us.flagObstruction()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
 		
-		collection.rotateCage(-500);
-
-		function = FunctionType.END_NAVIGATE;
+		// If there is a blue block, collect it
+		if(us.getZType() == USGather.HeightCategory.BLUE_BLOCK)
+			collect();
+		else // Otherwise call this again
+			navigateBoard(mode * -1);
+		
 	}
+	// Identifies a specific block
+	private void identify() {
+
+	}
+
+	// Collects said block
+	private void collect() {
+		if(blocksCollected == 0){
+			collection.lowerCage();
+			collection.openCage();
+			
+			nav.move();
+			try { Thread.sleep(2000); } 
+			catch (InterruptedException e) {}
+			nav.stop();
+			
+			try { Thread.sleep(250); } 
+			catch (InterruptedException e) {}
+			
+			collection.closeCage();
+			collection.raiseCage();
+		}
+		else{
+			nav.move();
+			try {Thread.sleep(3000);} catch(InterruptedException e) {}
+			nav.stop();
+			
+			nav.reverse();
+			try {Thread.sleep(50);} catch(InterruptedException e) {}
+			//while(us.getDistance() > 5);
+			nav.stop();
+			
+			collection.lowerCage();
+			collection.openCage();
+			
+			nav.move();
+			try {Thread.sleep(500);}
+			catch (InterruptedException e) {}
+			nav.stop();
+			
+			collection.closeCage();
+			collection.raiseCage();
+		}
+		
+		blocksCollected++;
+		
+		navigateBoard(1);
+		//function = FunctionType.OPEN_NAVIGATE;
+	}
+
 	// Releases the entire stack (only done at the end of the match)
 	private void release() {
 		collection.release();
@@ -259,7 +320,10 @@ public class ScnIdColTest extends Thread{
 		try { Thread.sleep(2500); } 
 		catch (InterruptedException e) { }
 		nav.stop();
-		
-		function = FunctionType.IDLE;
 	}
+	
+	private void returnToStart(){
+		
+	}
+
 }

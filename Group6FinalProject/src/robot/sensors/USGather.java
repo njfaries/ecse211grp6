@@ -51,10 +51,10 @@ public class USGather implements TimerListener {
 	
 	//methods to update x,y and z values
 	private void updateXY() {
-		//do a ping
+/*		//do a ping
 		usXY.ping();
 		//wait for the ping to complete
-		try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}
+		try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}*/
 		//if 255 return without update
 		if( usXY.getDistance() != 255 ) {
 			Odometer.getPosition(pos);
@@ -65,10 +65,10 @@ public class USGather implements TimerListener {
 		}		
 	}
 	private void updateZ() {
-		//do a ping
+/*		//do a ping
 		usZ.ping();
 		//wait for the ping to complete
-		try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}
+		try { Thread.sleep(SLEEP_TIME); } catch (InterruptedException e) {}*/
 		//if 255 return without update
 		if( usZ.getDistance() != 255 ) {
 			z = zSen - usZ.getDistance();
@@ -81,11 +81,9 @@ public class USGather implements TimerListener {
 	
 	//getters
 	public double getR() {
-		double result;
 		synchronized (lock) {
-			result = r;
+			return r;
 		}
-		return result;
 	}
 	public double getX() {
 		double result;

@@ -1,12 +1,12 @@
 package robot.test;
 
+import robot.base.RobotController.FunctionType;
 import robot.bluetooth.*;
 import robot.collection.*;
 import robot.localization.Localization;
 import robot.mapping.*;
 import robot.navigation.*;
 import robot.sensors.*;
-
 import lejos.nxt.Button;
 import lejos.nxt.LCD;
 import lejos.nxt.Motor;
@@ -64,6 +64,7 @@ public class SeachTest extends Thread {
 	private int blocksCollected = 0;
 	private int maxBlocks = 2;
 	private double searchFrom = 0, searchTo = 90;
+	private double startTime;
 	
 	private FunctionType function = FunctionType.SEARCH;
 
@@ -77,13 +78,8 @@ public class SeachTest extends Thread {
 	 * The robot controller delegates the starting and ending of various
 	 * subtasks like localization, searching and collection.
 	 */
-<<<<<<< HEAD
 	public SeachTest() {
 		startTime = System.currentTimeMillis();
-		
-=======
-	public SearchTest() {
->>>>>>> 8761adc265edff1301fb3867ada040937b320854
 		//receive();
 		
 		new Map2(role, greenZone, redZone);
@@ -144,7 +140,7 @@ public class SeachTest extends Thread {
 					double t = sc.bestOpenAngle(searchFrom, searchTo, endCenter[0], endCenter[1]);
 					//if -1 is return of best open angle, none open, scan again
 					if(t == -1) { 
-						function = FunctionType.SEARCH;
+						function = FunctionType.IDLE;
 						break;
 					}
 					Odometer.getPosition(pos);
@@ -158,12 +154,20 @@ public class SeachTest extends Thread {
 						function = FunctionType.RELEASE;
 						break;
 					}
-					else 
-						nav.travelTo(x, y);
+					
+					double heading = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0]));
+					nav.turnTo(heading,0);
 					while( !nav.isDone() ) {
 						try { Thread.sleep(200); }
 						catch(InterruptedException e){ }
 					}
+					nav.stop();
+					
+					nav.move();
+					try { Thread.sleep(3000); }
+					catch(InterruptedException e){ }
+					nav.stop();
+					
 					Odometer.getPosition(pos);
 					searchFrom = pos[2] - 45;
 					searchTo = pos[2] + 45;

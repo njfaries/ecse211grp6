@@ -13,12 +13,14 @@ import lejos.util.TimerListener;
 public class Navigation2 implements TimerListener {
 	private final double FORWARD_SPEED = 10;
 	private final double ROTATION_SPEED = 35;
-	private final double ANGLE_ERROR_THRESH = 2;
-	private final double DISTANCE_THRESH = 3;
+	private final double TURNING_ANGLE_ERROR_THRESH = 2;
+	private final double MOVING_ANGLE_ERROR_THRESH = 5;
+	private final double DIST_ERROR_THRESH = 2;
 	
 	private TwoWheeledRobot robo;
 	//will need getters and setters
-	private double destinationX, destinationY, destinationT;
+	private double destinationX, destinationY, destinationT, startX, startY;
+	private double angleError = TURNING_ANGLE_ERROR_THRESH;
 	
 	private int turnDirection;
 	
@@ -27,7 +29,7 @@ public class Navigation2 implements TimerListener {
 	private boolean done = true;
 	private boolean traveling = false;
 	private boolean turning = false;
-
+	private boolean onlyTurn = false;
 	private Object lock = new Object();
 	
 	/**
@@ -47,8 +49,6 @@ public class Navigation2 implements TimerListener {
 	@Override
 	public void timedOut() {
 		if(done){
-			turning = false;
-			traveling = false;
 			turnDirection = 0;
 			//robo.stopMotor();
 			return;
@@ -63,33 +63,51 @@ public class Navigation2 implements TimerListener {
 		double dX = destinationX - pos[0];
 		double dY = destinationY - pos[1];
 		double dT = destinationT - pos[2];
-		double distance = Math.sqrt(dX * dX + dY * dY);
+		if(destinationT == -1)
+			dT = getAngle() - pos[2];
 		
-		if(Math.abs(dT) < ANGLE_ERROR_THRESH){
+		if(Math.abs(dT) > angleError)
+			turning = true;
+		else{
 			turning = false;
 			turnDirection = 0;
 		}
-		
 		// Checks if traveling is necessary
-		if(distance < DISTANCE_THRESH)
+		if(Math.abs(dX) > DIST_ERROR_THRESH || Math.abs(dY) > DIST_ERROR_THRESH){
+			turnDirection = 0;
+			traveling = true;
+		}
+		else{
+			if(!onlyTurn)
+				turning = false;
 			traveling = false;
+		}
 		
 		// Movement methods called here
-		if(turning)
+		if(turning){
 			turnBy(dT);
-		else if(traveling)
-			move();
-		else
-			stop();
+		}
+		else if(traveling){
+			travel();
+		}
+		else{
+			done = true;
+		}
 		
 	}
-	
+	// Travel to a point (this is called after the robot is oriented so only forward movement is necessary)
+	private void travel(){
+		robo.setSpeeds(FORWARD_SPEED, 0);
+		robo.goForward();
+	}
 	// Turn by a specific amount
 	private void turnBy(double theta){
 		if(turnDirection == 1){
+			robo.setSpeeds(0, ROTATION_SPEED);
 			robo.turn(0);
 		}
 		else if(turnDirection == 2){
+			robo.setSpeeds(0, -ROTATION_SPEED);
 			robo.turn(1);
 		}
 		else{
@@ -103,7 +121,17 @@ public class Navigation2 implements TimerListener {
 			turnBy(theta);
 		}
 		
-	}	
+	}
+	// Calculate an angle by observing the distances in X and Y needed to be travelled by
+	private double getAngle(){
+		double angle = Math.toDegrees(Math.atan2((destinationY - startY), (destinationX - startX)));
+
+		if (angle < 0.0)
+			angle = 360.0 + (angle % 360.0);
+		
+		return angle % 360.0;
+	}
+	
 	
 	/**
 	 * Initiates the traveling to a particular point
@@ -111,24 +139,25 @@ public class Navigation2 implements TimerListener {
 	 * @param y - The destination y value
 	 */
 	public void travelTo(double x, double y) {
-		Odometer.getPosition(pos);		
+		robo.setSpeeds(0,0);
+		robo.goForward();
+		
+		Odometer.getPosition(pos);
+		startX = pos[0];
+		startY = pos[1];
+		
 		destinationX = x;
 		destinationY = y;
-		
-		double heading = Math.toDegrees(Math.atan2(pos[1] - y, pos[0] - x));
-		double headingError = pos[2] - heading;
-		if(headingError < 360)
-			headingError += 360;
-		headingError = headingError % 360;
-		
-		if(headingError > ANGLE_ERROR_THRESH){
-			destinationT = heading;
-			turnDirection = 0;
-			turning = true;
-		}
+		destinationT = -1;
 		
 		traveling = true;
-		done = false;
+		onlyTurn = false;
+		
+		synchronized(lock){
+			done = false;
+		}
+		
+		angleError = MOVING_ANGLE_ERROR_THRESH;
 	}
 		
 	/**
@@ -137,15 +166,25 @@ public class Navigation2 implements TimerListener {
 	 * @param direction - The direction to turn 0:don't care; 1:clockwise; 2:counter clockwise
 	 */
 	public void turnTo(double theta, int direction) {
+		robo.setSpeeds(0,0);
+		robo.goForward();
+		
 		Odometer.getPosition(pos);
+		startX = pos[0];
+		startY = pos[1];
 		destinationX = pos[0];
 		destinationY = pos[1];
-		
 		destinationT = theta;
 		turnDirection = direction;
 		
 		turning = true;
-		done = false;
+		onlyTurn = true;
+		
+		synchronized(lock){
+			done = false;
+		}
+		
+		angleError = TURNING_ANGLE_ERROR_THRESH;
 	}
 	
 	/**
@@ -155,21 +194,35 @@ public class Navigation2 implements TimerListener {
 	public void stop() {				
 		synchronized(lock){
 			done = true;
+			robo.setSpeeds(0,0);
 			robo.stopMotor();
-			
-			traveling = false;
-			turning = false;
 		}
-                                           
+		traveling = false;
+		turning = false;                                               
+	}
+	
+	/**
+	 * method used in collection to move forward after the claw has been opened
+	 * @param dist - the distance to move forward
+	 * @return void
+	 */
+	public void moveStraight(double dist) {
+		double[] pos = new double[3];
+		Odometer.getPosition(pos);
+		double x = pos[0] + dist * Math.cos(pos[2]);
+		double y = pos[1] + dist * Math.sin(pos[2]);
+		travelTo(x,y);
 	}
 	
 	public void move(){
 		synchronized(lock){
+			robo.setSpeeds(FORWARD_SPEED, 0);
 			robo.goForward();
 		}
 	}
 	public void reverse(){
 		synchronized(lock){
+			robo.setSpeeds(-FORWARD_SPEED, 0);
 			robo.goBackward();
 		}
 		
@@ -184,6 +237,11 @@ public class Navigation2 implements TimerListener {
 		if(speed > 0)
 			rotationSpeed = speed;
 		synchronized(lock){
+			if(direction == 0)
+				robo.setSpeeds(0, rotationSpeed);
+			else
+				robo.setSpeeds(0, -rotationSpeed);
+		
 			robo.turn(direction);
 		}
 		
@@ -199,4 +257,3 @@ public class Navigation2 implements TimerListener {
 		}
 	}
 }
-

@@ -35,7 +35,7 @@ public class Scanner {
 		while( !nav.isDone() ) {
 			try { Thread.sleep(200); } catch(InterruptedException e){ }
 		}
-		
+		nav.stop();
 		reset();
 		
 		Odometer.getPosition(pos);
@@ -60,6 +60,7 @@ public class Scanner {
 			}
 			try { Thread.sleep(40); } catch(InterruptedException e){ }
 		}
+		nav.stop();
 		
 		// Convert the arrayLists to arrays
 		ts = new double[tValues.size()];
