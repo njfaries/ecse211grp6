@@ -46,9 +46,7 @@ public class CollectionTest extends Thread{
 		new CollectionTest();
 		
 	}
-	public CollectionTest(){		
-		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, odoCorr);
+	public CollectionTest(){			
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo);
@@ -56,7 +54,7 @@ public class CollectionTest extends Thread{
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
-		collection.rotateCage(-310);
+		collection.rotateCage(-435);
 		
 		new LCDInfo();
 		this.start();
