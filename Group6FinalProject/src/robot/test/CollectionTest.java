@@ -35,6 +35,7 @@ public class CollectionTest extends Thread{
 	private ColorGather cg;
 	private CollectionSystem collection;
 	private Navigation2 nav;
+	private OdometryCorrection odoCorr;
 	
 	private static FunctionType function = FunctionType.COLLECT;
 	
@@ -47,10 +48,11 @@ public class CollectionTest extends Thread{
 	}
 	public CollectionTest(){		
 		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader);
+		cg = new ColorGather(csLeft, csRight, csBlockReader, odoCorr);
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
-		new Odometer(robo, null);
+		new Odometer(robo);
+		
 		nav = new Navigation2(robo);
 		
 		collection = new CollectionSystem(clawMotor, nav);
