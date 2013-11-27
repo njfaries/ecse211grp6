@@ -9,7 +9,6 @@ import robot.sensors.*;
 
 import lejos.nxt.Button;
 import lejos.nxt.LCD;
-import lejos.nxt.Motor;
 import lejos.nxt.MotorPort;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.ColorSensor;
@@ -27,15 +26,12 @@ import lejos.nxt.UltrasonicSensor;
  */
 public class RobotController extends Thread {
 	public enum FunctionType {
-		IDLE, LOCALIZE, SEARCH, IDENTIFY, BLOCK_NAVIGATE, OPEN_NAVIGATE, COLLECT, END_NAVIGATE, RELEASE, RETURN
+		IDLE, LOCALIZE, BOARD_NAVIGATE, RELEASE, RETURN
 	};
 
 	public enum RobotMode {
 		STACKER, GARBAGE
 	};
-
-	private static double OPEN_DIST = 40;
-	
 	private static NXTRegulatedMotor leftMotor = new NXTRegulatedMotor(MotorPort.A);
 	private static NXTRegulatedMotor rightMotor = new NXTRegulatedMotor(MotorPort.B);
 	private static NXTRegulatedMotor cageMotor = new NXTRegulatedMotor(MotorPort.C);
@@ -54,18 +50,17 @@ public class RobotController extends Thread {
 	private ColorGather cg;
 
 	private Localization loc;
-	private Scanner sc;
 	
 	StartCorner corner = StartCorner.BOTTOM_LEFT;
 	PlayerRole role = PlayerRole.BUILDER;
-	int[] greenZone = new int[] {60,90,90,120};
-	int[] redZone = new int[4];
-
+	int[] greenZone = new int[] {165,165,195,195};
+	int[] redZone  = new int[4];
+	int[] startCenter = new int[2];
+	double[] endCenter;
 	private int blocksCollected = 0;
 	private int maxBlocks = 2;
-	private double searchFrom = 0, searchTo = 90;
 	
-	private FunctionType function = FunctionType.SEARCH;
+	private FunctionType function = FunctionType.LOCALIZE;
 
 	private double[] pos = new double[3];
 
@@ -80,26 +75,29 @@ public class RobotController extends Thread {
 	public RobotController() {
 		//receive();
 		
-		new Map2(role, greenZone, redZone);
-
-		us = new USGather(usFront, usTop);
-		cg = new ColorGather(csLeft, csRight, new OdometryCorrection());
+		new Map2(role, redZone, greenZone);
+		endCenter = Map2.getEndCenter();
 		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		nav = new Navigation2(robo);
 		
+		collection = new CollectionSystem(cageMotor, nav);
+		collection.rotateCage(-325);
+		
+		int buttonChoice = Button.waitForAnyPress();
+		while (buttonChoice != Button.ID_ENTER){}
+		
+		us = new USGather(usFront, usTop);
+		cg = new ColorGather(csLeft, csRight, new OdometryCorrection());
+		
 		//need to construct localization with transmission.startingCorner
 		loc = new Localization(us, cg, StartCorner.BOTTOM_LEFT, nav);
-		sc = new Scanner(nav, us);
 		
 		//corrector = new OdometryCorrection(cg, WHEEL_RADIUS, ODOCORRECT_SENS_WIDTH, ODOCORRECT_SENS_DIST);
 		new Odometer(robo);
 
 		//id = new Identify(cg, us, nav);
-
-		collection = new CollectionSystem(cageMotor, nav);
-		collection.rotateCage(-430);
-		
+				
 		this.start();
 	}
 
@@ -107,83 +105,26 @@ public class RobotController extends Thread {
 	// identification, etc)
 	public void run() {
 		boolean running = true;
-		double[] endCenter = Map2.getEndCenter();
-		
 		while (running) {
 			switch(function) {
 				case IDLE:
 					try { Thread.sleep(500); }
 					catch(InterruptedException e){ }
-					continue;
+					break;
 				case LOCALIZE:
 					localize();
-					
-					searchFrom = 0;
-					searchTo = 90;
-					function = FunctionType.SEARCH;
-					continue;
-				case SEARCH:
-					sc.scanRange(searchFrom, searchTo);
-					function = FunctionType.OPEN_NAVIGATE;
-					continue;
-				case BLOCK_NAVIGATE: 
-				case IDENTIFY:
-				case OPEN_NAVIGATE:
-					double t = sc.bestOpenAngle(searchFrom, searchTo, endCenter[0], endCenter[1]);
-					//if -1 is return of best open angle, none open, scan again
-					if(t == -1) { 
-						function = FunctionType.SEARCH;
-						break;
-					}
-					Odometer.getPosition(pos);
-					double x = pos[0] + OPEN_DIST * Math.cos(Math.toRadians(t));
-					double y = pos[1] + OPEN_DIST * Math.sin(Math.toRadians(t));
-					
-					
-					//if green zone center is within a threshold go to it as it is assumed as open
-					if(blocksCollected >= maxBlocks && Math.abs(pos[0] - endCenter[0]) < 15 
-							&& Math.abs(pos[1] - endCenter[1]) < 15 ) {
-						function = FunctionType.RELEASE;
-						break;
-					}
-					
-					double heading = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0]));
-					nav.turnTo(heading,0);
-					while( !nav.isDone() ) {
-						try { Thread.sleep(200); }
-						catch(InterruptedException e){ }
-					}
-					nav.stop();
-					
-					nav.move();
-					try { Thread.sleep(3000); }
-					catch(InterruptedException e){ }
-					nav.stop();
-					
-					Odometer.getPosition(pos);
-					searchFrom = pos[2] - 45;
-					searchTo = pos[2] + 45;
-					
-					function = FunctionType.SEARCH;
-					continue;
-				case END_NAVIGATE:
-					
-				case COLLECT:
-					collect();
-					continue;
+					function = FunctionType.BOARD_NAVIGATE;
+					break;
+				case BOARD_NAVIGATE:
+					navigateBoard(1);
+					break;
 				case RELEASE:
-					endCenter = Map2.getEndCenter();
-					nav.travelTo(endCenter[0], endCenter[1]);
-					while( !nav.isDone() ) {
-						try { Thread.sleep(200); }
-						catch(InterruptedException e){ }
-					}
 					release();
-					continue;
+					break;
 				case RETURN:
-					returnToStart();
+					returnToStart(1);
 					running = false;
-					continue;
+					break;
 			}
 			
 			try { Thread.sleep(50); } catch (InterruptedException e) { }
@@ -213,37 +154,53 @@ public class RobotController extends Thread {
 
 	// Initiates the localization of the robot
 	private void localize() {
-		cageMotor.rotate(-330);
 		loc.localize();
+		Odometer.getPosition(pos);
+		startCenter[0] = (int)pos[0] - 45;
+		startCenter[1] = (int)pos[1] - 45;
 	}
 	
 	private void navigateBoard(int mode){
+		// If done, return
+		LCD.clear(1);
+		LCD.drawString("Navigating",0,1);
+		Odometer.getPosition(pos);
+		double distance = Math.sqrt(Math.pow(endCenter[0] - pos[0],2) + Math.pow(endCenter[1] - pos[1],2));
+		if(distance < 15){
+			nav.stop();
+			function = FunctionType.RELEASE;
+			return;
+		}
+		
 		// Back up a bit
-		nav.reverse();
-		try { Thread.sleep(500); } 
-		catch (InterruptedException e) {}
-		nav.stop();
+		if(mode != 1){
+			nav.reverse();
+			try { Thread.sleep(1000); } 
+			catch (InterruptedException e) {}
+			nav.stop();
+		}
 		
 		// Turn either by +-90degrees or to face the green (or red) zone
 		Odometer.getPosition(pos);
-		double turnAngle = 0;
-		if(mode == 1){
-			double[] endCenter = Map2.getEndCenter();
-			turnAngle = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0])) - pos[2];
-		}
-		else{
-			if(pos[2] > 45 && pos[2] < 180)
-				turnAngle = -90;
+		LCD.drawString(endCenter[0] + "," + endCenter[1],0,0);
+		double turnAngle = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0]));
+		
+		if(mode != 1){
+			if((pos[2] > 45 && pos[2] < 135) || (pos[2] > 225 && pos[2] < 315))
+				turnAngle = pos[2] - 80;
 			else
-				turnAngle = 90;
+				turnAngle = pos[2] + 80;
 		}
 		// Fix angle if needed
 		if(turnAngle < 0)
 			turnAngle += 360;
 		turnAngle = turnAngle % 360;
 		
+		if(Map2.intersectsAvoidZone(turnAngle))
+			navigateBoard(mode);
+		
 		// Turn
-		nav.turnTo(pos[2] + turnAngle, 0);
+		nav.turnTo(turnAngle, 0);
 		while(!nav.isDone()){
 			try { Thread.sleep(250); } 
 			catch (InterruptedException e) {}
@@ -252,37 +209,136 @@ public class RobotController extends Thread {
 		
 		// Go forward until an obstacle is found
 		nav.move();
-		while(!us.flagObstruction()){
-			try { Thread.sleep(50); } 
-			catch (InterruptedException e) {}
-		}
-		// While an obstruction is flagged and no block is seen, continue forward (may return instantly)
-		while(us.getZType() == USGather.HeightCategory.FLOOR && us.flagObstruction()){
+		long startTime = System.currentTimeMillis();
+		while(!us.flagObstruction() && !us.criticalFlag()){
+			if(mode != 1){
+				long timeElapsed = System.currentTimeMillis() - startTime;
+				double distanceTraveled = timeElapsed * Odometer.getSpeed() / 1000;
+				if(distanceTraveled >= 60)
+					break;
+			}
+
+			Odometer.getPosition(pos);
+			distance = Math.sqrt(Math.pow(endCenter[0] - pos[0],2) + Math.pow(endCenter[1] - pos[1],2));
+			if(distance < 15){
+				nav.stop();
+				function = FunctionType.RELEASE;
+				return;
+			}
+			
 			try { Thread.sleep(50); } 
 			catch (InterruptedException e) {}
 		}
 		nav.stop();
 		
+		try { Thread.sleep(300); } 
+		catch (InterruptedException e) {}
+		
+		if(!us.criticalFlag())
+			approachBlock();
+
+		try { Thread.sleep(300); } 
+		catch (InterruptedException e) {}
+		
 		// If there is a blue block, collect it
 		if(us.getZType() == USGather.HeightCategory.BLUE_BLOCK)
 			collect();
-		else // Otherwise call this again
-			navigateBoard(mode * -1);
+		else if(us.getZType() == USGather.HeightCategory.WOODEN_BLOCK)// Otherwise call this again
+			navigateBoard(-1);
+		else
+			navigateBoard(1);
+	}
+	// While an obstruction is flagged and no block is seen, continue forward (may return instantly)
+	private void approachBlock(){
+		nav.stop();
 		
+		LCD.clear(1);
+		LCD.drawString("approaching",0,1);
+		
+		boolean veryClose = false;
+		nav.move();
+		long startTime = System.currentTimeMillis();
+		double distance = 0;
+		
+		while(us.flagObstruction() && !us.criticalFlag() && !us.flagImminent() && distance < 60){
+			long elapsedTime = System.currentTimeMillis() - startTime;
+			distance = Odometer.getSpeed() * elapsedTime / 1000;
+			
+			if(us.flagError()){
+				veryClose = true;
+				break;
+			}
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		try { Thread.sleep(100); } 
+		catch (InterruptedException e) {}
+		
+		if(us.flagImminent() && us.getZType() != USGather.HeightCategory.WOODEN_BLOCK)
+			collect();
+		else if(veryClose){
+			nav.reverse();
+			try { Thread.sleep(1000); } 
+			catch (InterruptedException e) {}
+			nav.stop();
+			
+			if(us.flagImminent())
+				collect();
+		}
+		else if(!us.flagError() && !us.flagImminent() && !us.flagObstruction() && !us.criticalFlag()){
+			overshot();
+		}
 	}
-	// Identifies a specific block
-	private void identify() {
 
+	//Handles overshooting a block
+	private void overshot(){
+		LCD.clear(1);
+		LCD.drawString("Overshot",0,1);
+		Odometer.getPosition(pos);
+		
+		double turnAngle = pos[2] + 45;
+		turnAngle = turnAngle % 360;
+		
+		nav.turnTo(turnAngle, 1);
+		while(!us.flagObstruction() && !us.criticalFlag() && !nav.isDone()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		if(us.flagObstruction() && !us.criticalFlag())
+			approachBlock();
+		else{
+			turnAngle = pos[2] - 90;
+			if(turnAngle < 0)
+				turnAngle += 360;
+			
+			nav.turnTo(turnAngle, 2);
+			while(!us.flagObstruction() && !us.criticalFlag() && !nav.isDone()){
+				try { Thread.sleep(50); } 
+				catch (InterruptedException e) {}
+			}
+			nav.stop();
+			
+			if(us.flagObstruction() && !us.criticalFlag())
+				approachBlock();
+		}
 	}
-
 	// Collects said block
 	private void collect() {
 		if(blocksCollected == 0){
+			nav.reverse();
+			try { Thread.sleep(1500); } 
+			catch (InterruptedException e) {}
+			nav.stop();
+			
 			collection.lowerCage();
 			collection.openCage();
 			
 			nav.move();
-			try { Thread.sleep(2000); } 
+			try { Thread.sleep(3500); } 
 			catch (InterruptedException e) {}
 			nav.stop();
 			
@@ -291,6 +347,8 @@ public class RobotController extends Thread {
 			
 			collection.closeCage();
 			collection.raiseCage();
+			
+			blocksCollected++;
 		}
 		else{
 			nav.move();
@@ -298,7 +356,7 @@ public class RobotController extends Thread {
 			nav.stop();
 			
 			nav.reverse();
-			try {Thread.sleep(50);} catch(InterruptedException e) {}
+			try {Thread.sleep(100);} catch(InterruptedException e) {}
 			//while(us.getDistance() > 5);
 			nav.stop();
 			
@@ -316,22 +374,94 @@ public class RobotController extends Thread {
 		
 		blocksCollected++;
 		
-		//navigateBoard(1);
-		function = FunctionType.OPEN_NAVIGATE;
+		navigateBoard(1);
+		//function = FunctionType.OPEN_NAVIGATE;
 	}
 
 	// Releases the entire stack (only done at the end of the match)
 	private void release() {
 		collection.release();
-		
-		nav.reverse();
-		try { Thread.sleep(2500); } 
-		catch (InterruptedException e) { }
-		nav.stop();
+		function = FunctionType.RETURN;
 	}
 	
-	private void returnToStart(){
+	private void returnToStart(int mode){
+		// If done, return
+		Odometer.getPosition(pos);
+		int[] endCenter = startCenter;
+		double distance = Math.sqrt(Math.pow(endCenter[0] - pos[0],2) + Math.pow(endCenter[1] - pos[1],2));
+		if(distance < 15)
+			return;
 		
+		// Back up a bit
+		if(mode != 0){
+			nav.reverse();
+			try { Thread.sleep(1000); } 
+			catch (InterruptedException e) {}
+			nav.stop();
+		}
+		
+		
+		// Turn either by +-90degrees or to face the green (or red) zone
+		Odometer.getPosition(pos);
+		double turnAngle = 0;
+		
+		LCD.drawString(endCenter[0] + "," + endCenter[1],0,0);
+		double heading = Math.toDegrees(Math.atan2(endCenter[1] - pos[1], endCenter[0] - pos[0]));
+		if(mode == 1)
+			turnAngle = heading;
+		else if(mode != 0){
+			if((pos[2] > turnAngle && turnAngle < 180) || (turnAngle > 180 && pos[2] < turnAngle))
+				turnAngle = pos[2] - 80;
+			else
+				turnAngle = pos[2] + 80;
+		}
+		// Fix angle if needed
+		if(turnAngle < 0)
+			turnAngle += 360;
+		turnAngle = turnAngle % 360;
+		
+		while(Map2.intersectsAvoidZone(turnAngle)){
+			if((pos[2] > 45 && pos[2] < 135) || (pos[2] > 225 && pos[2] < 315))
+				turnAngle -= 10;
+			else
+				turnAngle += 10;
+		}
+		
+		if(turnAngle < 0)
+			turnAngle += 360;
+		turnAngle = turnAngle % 360;
+		
+		// Turn
+		nav.turnTo(turnAngle, 0);
+		while(!nav.isDone()){
+			try { Thread.sleep(250); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		// Go forward until an obstacle is found
+		nav.move();
+		long startTime = System.currentTimeMillis();
+		while(!us.flagObstruction() && !us.criticalFlag()){
+			if(mode == -1){
+				long timeElapsed = System.currentTimeMillis() - startTime;
+				double distanceTraveled = timeElapsed * Odometer.getSpeed() / 1000;
+				if(distanceTraveled >= 45)
+					break;
+			}
+
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
+		
+		if(!us.criticalFlag())
+			returnToStart(0);
+		else if(mode == 0)
+			returnToStart(-1);
+		else
+			returnToStart(mode * -1);
+			
 	}
 
 }

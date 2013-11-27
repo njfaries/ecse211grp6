@@ -39,7 +39,7 @@ public class Map2 {
 	 * Creates the map instance with the constructor of the robot mode 0-stacker 1-garbager
 	 * @param mode
 	 */
-	public Map2(PlayerRole role, int[] redZone, int[] greenZone){
+	public Map2(PlayerRole role, int[] redZone, int[] greenZone){		
 		if(role == PlayerRole.BUILDER){
 			endPoints = greenZone;
 			avoidPoints = redZone;
@@ -66,10 +66,14 @@ public class Map2 {
 	}
 	
 	// Getters
-	public static boolean checkPoint(double x, double y){
-		for(int i=0; i<points.size(); i++){
-			double distance = Point2D.distance(points.get(i).getX(), points.get(i).getY(), x, y);
-		}
+	public static boolean intersectsAvoidZone(double t){
+		Odometer.getPosition(pos);
+		double finalX = pos[0] + 40 * Math.cos(Math.toRadians(t));
+		double finalY = pos[1] + 40 * Math.sin(Math.toRadians(t));
+		Line2D path = new Line2D.Double(pos[0], pos[1], finalX, finalY);
+		
+		if(avoidZone.contains(finalX, finalY) || path.intersects(avoidZone))
+			return true;
 		return false;
 	}
 	

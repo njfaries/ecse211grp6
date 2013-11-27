@@ -44,7 +44,9 @@ public class CollectionSystem {
 		cageMotor.forward();
 		try {Thread.sleep(CLAW_TIME);} catch(InterruptedException e) {}
 		cageMotor.stop();
+		
 		try {Thread.sleep(CLAW_TIME);} catch(InterruptedException e) {}
+		
 		cageMotor.backward();
 		try {Thread.sleep(CLAW_TIME);} catch(InterruptedException e) {}
         cageMotor.stop();
@@ -59,9 +61,14 @@ public class CollectionSystem {
 		cageMotor.forward();
 		try {Thread.sleep(CLAW_TIME);} catch(InterruptedException e) {}
 		cageMotor.stop();
+		
 		nav.reverse();
-		try {Thread.sleep(2000);} catch(InterruptedException e) {} //arbitrary number
+		try {Thread.sleep(3000);} catch(InterruptedException e) {} //arbitrary number
 		nav.stop();
+		
+		cageMotor.backward();
+		try {Thread.sleep(CLAW_TIME);} catch(InterruptedException e) {}
+		cageMotor.stop();
 	}
 		
 	/**

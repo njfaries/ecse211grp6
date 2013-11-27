@@ -12,7 +12,7 @@ import lejos.util.TimerListener;
  */
 public class Navigation2 implements TimerListener {
 	private final double FORWARD_SPEED = 10;
-	private final double ROTATION_SPEED = 35;
+	private final double ROTATION_SPEED = 40;
 	private final double TURNING_ANGLE_ERROR_THRESH = 2;
 	private final double MOVING_ANGLE_ERROR_THRESH = 5;
 	private final double DIST_ERROR_THRESH = 2;
@@ -192,11 +192,10 @@ public class Navigation2 implements TimerListener {
 	 * @return void
 	 */
 	public void stop() {				
-		synchronized(lock){
-			done = true;
-			robo.setSpeeds(0,0);
-			robo.stopMotor();
-		}
+		done = true;
+		robo.setSpeeds(0,0);
+		robo.stopMotor();
+		
 		traveling = false;
 		turning = false;                                               
 	}

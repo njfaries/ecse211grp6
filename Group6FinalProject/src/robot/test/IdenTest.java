@@ -25,10 +25,7 @@ public class IdenTest extends Thread{
 	private NXTRegulatedMotor clawMotor = Motor.C;
 	
 	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
-	
-	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
-	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
+	private static UltrasonicSensor usTop = new UltrasonicSensor(SensorPort.S3);	
 	
 	private TwoWheeledRobot robo;
 	private USGather us;
@@ -44,20 +41,15 @@ public class IdenTest extends Thread{
 	public static void main(String[] args) {
 		new IdenTest();
 	}
-	public IdenTest(){		
-		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
-		
+	public IdenTest(){				
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
-		id = new Identify(cg, us, nav);
-		
 		collection = new CollectionSystem(clawMotor, nav);
 		collection.rotateCage(-330);
+		us = new USGather(usFront, usTop);
 		
-		new LCDInfo();
 		this.start();
 	}
 	// Runs all the control code (calling localization, navigation, identification, etc)
@@ -67,7 +59,7 @@ public class IdenTest extends Thread{
 				identify();			
 			
 			try{
-				Thread.sleep(50);
+				Thread.sleep(250);
 			}
 			catch(InterruptedException e){
 				
@@ -75,18 +67,7 @@ public class IdenTest extends Thread{
 		}
 	}
 	// Collects said block
-	private void identify(){		
-		// if the block is blue collect it
-		
-		if (id.isBlue()) {
-			LCD.drawString("grabbing", 0,7);
-		}
-		
-		// else the robot has backed up and does a search
-		else {
-			LCD.drawString("nothing", 0,7);
-		}
-		function = FunctionType.IDLE;
+	private void identify(){
 	}
 }
 

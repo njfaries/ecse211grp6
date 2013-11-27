@@ -25,10 +25,7 @@ public class IdenCollTest extends Thread{
 	private NXTRegulatedMotor clawMotor = Motor.C;
 	
 	private static UltrasonicSensor usFront = new UltrasonicSensor(SensorPort.S4);
-	
-	private static ColorSensor csLeft = new ColorSensor(SensorPort.S1);
-	private static ColorSensor csRight = new ColorSensor(SensorPort.S2);
-	private static ColorSensor csBlockReader = new ColorSensor(SensorPort.S3);
+	private static UltrasonicSensor usTop = new UltrasonicSensor(SensorPort.S3);	
 	
 	private TwoWheeledRobot robo;
 	private USGather us;
@@ -45,19 +42,14 @@ public class IdenCollTest extends Thread{
 		new IdenCollTest();
 	}
 	public IdenCollTest(){		
-		us = new USGather(usFront);
-		cg = new ColorGather(csLeft, csRight, csBlockReader, new OdometryCorrection());
-		
 		robo = new TwoWheeledRobot(leftMotor, rightMotor);
 		new Odometer(robo);
 		nav = new Navigation2(robo);
 		
-		id = new Identify(cg, us, nav);
-		
 		collection = new CollectionSystem(clawMotor, nav);
 		collection.rotateCage(-330);
+		us = new USGather(usFront, usTop);
 		
-		new LCDInfo();
 		this.start();
 	}
 	// Runs all the control code (calling localization, navigation, identification, etc)
@@ -79,37 +71,42 @@ public class IdenCollTest extends Thread{
 		}
 	}
 	// Collects said block
-	private void identify(){		
-		// if the block is blue collect it
-		
-		if (id.isBlue()) {
-			LCD.drawString("blue", 0,7);
-			function = FunctionType.COLLECT;
+	private void identify(){	
+		nav.move();
+		while(!us.flagObstruction()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
 		}
+		// While an obstruction is flagged and no block is seen, continue forward (may return instantly)
+		while(us.getZType() == USGather.HeightCategory.FLOOR && us.flagObstruction()){
+			try { Thread.sleep(50); } 
+			catch (InterruptedException e) {}
+		}
+		nav.stop();
 		
-		// else the robot has backed up and does a search
-		else {
-			LCD.drawString("not blue", 0,7);
-			function = FunctionType.IDLE;
-		}	
+		function = FunctionType.COLLECT;
 	}
 	// Collects said block
 	private void collect(){
-		LCD.drawString("collecting", 0,7);
+		nav.reverse();
+		try { Thread.sleep(500); } 
+		catch (InterruptedException e) {}
+		nav.stop();
+		
 		collection.lowerCage();
 		collection.openCage();
 		
 		nav.move();
-		try { Thread.sleep(2500); } 
-		catch (InterruptedException e) { }
+		try { Thread.sleep(3000); } 
+		catch (InterruptedException e) {}
 		nav.stop();
 		
 		try { Thread.sleep(250); } 
-		catch (InterruptedException e) { }
+		catch (InterruptedException e) {}
 		
 		collection.closeCage();
 		collection.raiseCage();
-
+		
 		function = FunctionType.IDLE;
 	}
 }
