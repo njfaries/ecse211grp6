@@ -514,3 +514,8 @@ org.eclipse.team.core.TeamException: Stash reflog does not contain entry ''{0}''
 	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:53)
 !SUBENTRY 1 org.eclipse.team.core 4 0 2013-11-26 14:55:09.639
 !MESSAGE Stash reflog does not contain entry ''{0}''
+
+!ENTRY org.eclipse.ui 4 0 2013-11-27 01:42:06.326
+!MESSAGE Unhandled event loop exception
+!STACK 0
+java.lang.OutOfMemoryError: Requested array size exceeds VM limit

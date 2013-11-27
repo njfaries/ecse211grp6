@@ -11,4 +11,6 @@
 <fullyQualifiedTypeName name="robot.navigation.Navigation2"/>
 <fullyQualifiedTypeName name="robot.mapping.Scan2"/>
 <fullyQualifiedTypeName name="java.awt.geom.Point2D.Double"/>
+<fullyQualifiedTypeName name="java.awt.geom.Line2D.Double"/>
+<fullyQualifiedTypeName name="robot.sensors.USGather.HeightCategory"/>
 </qualifiedTypeNameHistroy>
